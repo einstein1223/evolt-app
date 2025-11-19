@@ -1,2 +1,2 @@
--   [x] Remove the "Waktu Booking" row from the station cards in MapResults.vue to hide time and date display, matching the dashboard style.
--   [x] Verify the changes by checking the station cards no longer show booking time.
+-   [ ] Remove "Langkah 3" text from the span in Langkah 3 section
+-   [ ] Replace lorem ipsum paragraph with relevant text matching the title

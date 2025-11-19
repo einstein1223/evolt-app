@@ -95,7 +95,7 @@ onBeforeUnmount(() => {
                 Pencarian Stasiun <span class="text-lime-600">Terdekat</span>
               </h2>
               <p class="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                **Lorem ipsum** is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.
+                Aplikasi menampilkan peta geolokasi dengan semua SPKLU yang terdaftar. Kami menggunakan data Status Real-Time yang secara akurat menampilkan slot yang Available (siap pakai) ke pengguna.
               </p>
             </div>
             <div class="lg:w-1/2 flex justify-center w-full">
@@ -111,10 +111,10 @@ onBeforeUnmount(() => {
             <div class="lg:w-1/2">
               <span class="text-xs sm:text-sm font-semibold text-lime-600 uppercase tracking-widest block mb-2 sm:mb-3">Langkah 2</span>
               <h2 class="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 sm:mb-4 md:mb-6 text-balance">
-                Reservasi Slot <span class="text-lime-600">Real-Time</span>
+                Reservasi Slot <span class="text-lime-600">Terjamin</span>
               </h2>
               <p class="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                **Lorem ipsum** is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text.
+                Pengguna dapat memilih stasiun dan mengunci slot pengisian spesifik. Sistem mengirimkan perintah OCPP Remote Reservation ke stasiun. Setelah pembayaran, slot terjamin dan pengguna menerima QR Booking untuk memulai sesi tanpa antrian.
               </p>
             </div>
             <div class="lg:w-1/2 flex justify-center w-full">
@@ -130,10 +130,10 @@ onBeforeUnmount(() => {
             <div class="lg:w-1/2">
               <span class="text-xs sm:text-sm font-semibold text-lime-600 uppercase tracking-widest block mb-2 sm:mb-3">Langkah 3</span>
               <h2 class="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 sm:mb-4 md:mb-6 text-balance">
-                Integrasi <span class="text-lime-600">Teknologi</span> Terbaru
+                <span class="text-lime-600"> Otomasi</span> Operasional & Data Audit
               </h2>
               <p class="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                **Lorem ipsum** is simply dummy text of the printing and typesetting industry. It has survived not only five centuries.
+                Platform dibangun di atas protokol OCPP yang memungkinkan Komunikasi Dua Arah antara Backend Server dan SPKLU. Integrasi ini menghasilkan Audit Data Transaksi Otomatis dan mendukung model Zero Operator Cost yang efisien.
               </p>
             </div>
             <div class="lg:w-1/2 flex justify-center w-full">

@@ -1,9 +1,9 @@
 <script setup>
 import { ref, reactive, computed } from "vue";
 import { usePage, router } from "@inertiajs/vue3";
-import route from "ziggy-js"; // ✅ pastikan ziggy-js sudah terinstall
-import AppNavbar from "@/Components/AppNavbar.vue";
-import AppFooter from "@/Components/AppFooter.vue";
+import { route } from "ziggy-js"; // ✅ pastikan ziggy-js sudah terinstall
+import Navbar from "@/Components/Navbar.vue";
+import Footer from "@/Components/Footer.vue";
 
 // === USER DATA ===
 const page = usePage();
