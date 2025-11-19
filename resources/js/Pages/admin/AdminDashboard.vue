@@ -493,6 +493,19 @@ const filteredOperatorReports = computed(() => {
   });
 });
 
+// Search functionality for stations table
+const searchQuery = ref('');
+
+// Computed property untuk memfilter stasiun berdasarkan pencarian
+const filteredStations = computed(() => {
+  if (!searchQuery.value) {
+    return stations.value;
+  }
+  return stations.value.filter(station =>
+    station.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
 </script>
 
 <template>
@@ -534,10 +547,22 @@ const filteredOperatorReports = computed(() => {
             <h3 class="text-lg font-semibold text-gray-900">Daftar Stasiun</h3>
             <p class="text-sm text-gray-500 mt-1">Status dan detail semua stasiun yang terdaftar</p>
 
-            <div class="text-right mb-5">
+            <!-- Search Input and Button Row -->
+            <div class="flex justify-between items-center mt-4 mb-5">
+              <div class="relative">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Cari stasiun..."
+                  class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853] transition duration-150"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <button
                 @click="openAddStationModal"
-                class="mt-4 w-50 inline-flex justify-right items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#00C853] hover:bg-[#00A142] transition duration-150"
+                class="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#00C853] hover:bg-[#00A142] transition duration-150"
               >
                 + Tambah Stasiun Baru
               </button>
@@ -555,7 +580,7 @@ const filteredOperatorReports = computed(() => {
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="station in stations" :key="station.id" class="hover:bg-gray-50 transition-colors duration-150">
+                <tr v-for="station in filteredStations" :key="station.id" class="hover:bg-gray-50 transition-colors duration-150">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ station.name }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ station.coords }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
@@ -583,6 +608,9 @@ const filteredOperatorReports = computed(() => {
                 </tr>
               </tbody>
             </table>
+            <div v-if="filteredStations.length === 0" class="text-center py-8 text-gray-500 text-sm">
+              Tidak ada stasiun yang sesuai dengan pencarian.
+            </div>
           </div>
         </div>
 

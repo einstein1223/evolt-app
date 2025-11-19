@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
 
     <main class="flex-grow relative z-0"> 
       
-      <section class="bg-[#B6F500] pt-16 pb-64 relative overflow-visible">
+      <section class="bg-[#CCFF00] pt-16 pb-64 relative overflow-visible">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div class="flex flex-col lg:flex-row items-center justify-between">
             
