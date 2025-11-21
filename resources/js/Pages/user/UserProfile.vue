@@ -1,97 +1,62 @@
 <script setup>
 import { ref, reactive, computed } from "vue";
-import { usePage, useForm, router } from "@inertiajs/vue3";
-// Import komponen yang diperlukan (asumsi sudah tersedia)
-import AppNavbar from "@/Components/AppNavbar.vue";
-import AppFooter from "@/Components/AppFooter.vue";
+import { usePage, useForm, router, Link } from "@inertiajs/vue3";
 
-// --- PROPS ---
-// Anda perlu menambahkan `defineProps` jika komponen ini menerima props dari controller
+
+// --- NOTE PENTING ---
+// Import ini saya matikan dulu agar tidak LAYAR PUTIH karena file mungkin belum ada/salah path.
+// Jika file AppNavbar.vue dan AppFooter.vue sudah ada di folder Components, silakan uncomment.
+// import AppNavbar from "@/Components/AppNavbar.vue";
+// import AppFooter from "@/Components/AppFooter.vue";
+// TERIMA DATA DARI CONTROLLER
 const props = defineProps({
-    user: {
-        type: Object,
-        default: () => null,
-    },
+    orders: Array // <-- Ini data riwayat booking
 });
 
 // --- DATA INITIATION ---
 const page = usePage();
+// Gunakan ?. (Optional Chaining) agar tidak error layar putih saat loading
 const authUser = page.props.auth?.user || {};
 
-// Data akun utama yang ditampilkan di sidebar dan form awal.
-// Ambil dari props.user (jika ada) atau authUser (jika login).
-const initialUserData = reactive({
-    name: props.user?.name || authUser.name || "",
-    email: props.user?.email || authUser.email || "",
-    phone: props.user?.phone || authUser.phone || "", // Menambahkan phone
-    address: props.user?.address || authUser.address || "", // Menambahkan address
-    gender: props.user?.gender || authUser.gender || "Laki-laki",
-    birthDate: props.user?.birthDate || authUser.birthDate || "",
-    idType: props.user?.idType || authUser.idType || "",
-    idNumber: props.user?.idNumber || authUser.idNumber || "",
-    city: props.user?.city || authUser.city || "Kota Batam",
-});
-
-
 // --- INERTIA FORM HANDLER ---
-// Menggunakan satu form Inertia untuk data profil utama
+// Menggunakan field yang SESUAI dengan Database User.php kita
 const form = useForm({
-    // Account Information Fields
-    name: initialUserData.name,
-    gender: initialUserData.gender,
-    birthDate: initialUserData.birthDate,
-    idType: initialUserData.idType,
-    idNumber: initialUserData.idNumber,
-    city: initialUserData.city,
-    // Personal Information Fields (yang bisa diubah)
-    phone: initialUserData.phone,
-    // Tambahkan field lain yang mungkin ada di backend (misal address, dll)
+    // Account Info
+    username: authUser.username || "", // GANTI name jadi username
+    gender: authUser.gender || "Laki-laki",
+    birthDate: authUser.birthDate || "",
+    idType: authUser.idType || "KTP",
+    idNumber: authUser.idNumber || "",
+    city: authUser.city || "Kota Batam",
+    
+    // Personal Info
+    email: authUser.email || "",
+    nomor_telepon: authUser.nomor_telepon || "", // GANTI phone jadi nomor_telepon
+    nomor_plat: authUser.nomor_plat || "",       // WAJIB ADA (Field baru)
 });
 
-// Form terpisah untuk perubahan kata sandi
+// Form Password
 const passwordForm = useForm({
     current_password: "",
     password: "",
     password_confirmation: "",
 });
 
-
 // === UI STATE ===
 const activeMenu = ref("account");
-const activeTab = ref("informasi_akun"); // Hanya relevan saat activeMenu === 'account'
-
+const activeTab = ref("informasi_akun"); 
 
 // --- FUNGSI UTAMA ---
-
 const submitProfile = () => {
-    // Tentukan data yang akan dikirim berdasarkan tab aktif
-    let dataToSend = {};
-
-    if (activeTab.value === 'informasi_akun') {
-        dataToSend = {
-            name: form.name,
-            gender: form.gender,
-            birthDate: form.birthDate,
-            idType: form.idType,
-            idNumber: form.idNumber,
-            city: form.city,
-        };
-    } else if (activeTab.value === 'informasi_personal') {
-        dataToSend = {
-            phone: form.phone,
-            // Email tidak bisa diubah karena disabled di template
-        };
-    }
-
-    form.transform(data => ({
-        ...dataToSend, // Kirim hanya data yang relevan
-    })).put(route("profile.update"), {
+    // Kirim semua data form ke backend
+    form.patch(route("profile.update"), {
         preserveScroll: true,
         onSuccess: () => {
             alert("Profil berhasil diperbarui!");
         },
         onError: (errors) => {
             console.error(errors);
+            alert("Gagal update profil. Cek inputan anda.");
         },
     });
 };
@@ -101,42 +66,27 @@ const changePassword = () => {
         alert("Mohon isi semua field kata sandi!");
         return;
     }
-    if (passwordForm.password !== passwordForm.password_confirmation) {
-        alert("Konfirmasi kata sandi tidak cocok!");
-        // Reset password fields on error
-        passwordForm.password = "";
-        passwordForm.password_confirmation = "";
-        return;
-    }
-
-    passwordForm.put(route("password.update"), { // Asumsi ada route untuk password update
+    passwordForm.put(route("password.update"), {
         preserveScroll: true,
         onSuccess: () => {
             alert("Kata sandi berhasil diubah!");
-            // Reset form
             passwordForm.reset();
         },
         onError: (errors) => {
-            console.error(errors);
+            if(errors.current_password) alert("Password lama salah!");
         },
     });
 };
-
 
 const handleLogout = () => {
     router.post(route("logout"));
 };
 
-
 // === HELPER ===
 const getColorClass = (type) => {
-    switch (type) {
-        case "accent":
-            // Mengubah warna aksen agar lebih terlihat di latar putih
-            return "bg-[#00C853] hover:bg-[#00A142] text-white";
-        default:
-            return "";
-    }
+    // Menggunakan warna hijau E-VOLT atau warna aksen desainmu
+    if (type === "accent") return "bg-[#00C853] hover:bg-[#00A142] text-white"; 
+    return "";
 };
 
 // === SIDEBAR MENU ===
@@ -152,48 +102,46 @@ const menuItems = computed(() => [
 
 // === DUMMY DATA ===
 const orders = ref([
-    { id: 1, title: "Pesanan Station A", date: "2025-10-10", status: "Selesai" },
-    { id: 2, title: "Pesanan Station B", date: "2025-10-12", status: "Proses" },
+    { id: 1, title: "Charging Station A", date: "2025-10-10", status: "Selesai" },
+    { id: 2, title: "Charging Station B", date: "2025-10-12", status: "Proses" },
 ]);
-
 const newsList = ref([
     { id: 1, title: "Rilis Fitur Baru", excerpt: "Reservasi stasiun kini tersedia!" },
-    { id: 2, title: "Promo Musim Panas", excerpt: "Diskon 30% jam non-peak." },
 ]);
-
 const promos = ref([{ id: 1, code: "HALOEV", desc: "Diskon 10% pengguna baru" }]);
+const cancellations = ref([]);
 
-const cancellations = ref([
-    { id: 1, order: "Pesanan #2", reason: "Perubahan jadwal", date: "2025-09-20" },
-]);
 </script>
 
 <template>
-    <AppNavbar />
+    <nav class="bg-white shadow p-4 mb-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="font-bold text-xl text-green-600">E-VOLT</div>
+            <Link :href="route('dashboard')" class="text-gray-600 hover:text-green-600 text-sm font-medium">
+                Kembali ke Dashboard
+            </Link>
+        </div>
+    </nav>
 
-    <main
-      class="flex-1 max-w-7xl mx-auto w-full p-6 flex flex-col md:flex-row md:space-x-8 space-y-6 md:space-y-0"
-    >
-      <aside
-        class="w-full md:w-64 bg-white shadow-lg rounded-xl p-5 flex flex-col h-fit md:sticky md:top-6"
-      >
+    <main class="flex-1 max-w-7xl mx-auto w-full p-6 flex flex-col md:flex-row md:space-x-8 space-y-6 md:space-y-0">
+      
+      <aside class="w-full md:w-64 bg-white shadow-lg rounded-xl p-5 flex flex-col h-fit md:sticky md:top-6">
         <div class="mb-6">
-          <div class="text-lg font-bold">{{ initialUserData.name }}</div>
-          <div class="text-sm text-gray-500">{{ initialUserData.email }}</div>
+          <div class="text-lg font-bold break-words">{{ form.username || 'User' }}</div>
+          <div class="text-sm text-gray-500 break-words">{{ form.email }}</div>
+          <div class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mt-2 inline-block">
+              {{ form.nomor_plat || 'No Plat' }}
+          </div>
         </div>
 
         <nav class="flex flex-col space-y-1">
           <template v-for="item in menuItems" :key="item.id">
             <button
-              @click="
-                item.id === 'logout'
-                  ? handleLogout()
-                  : (activeMenu = item.id)
-              "
+              @click="item.id === 'logout' ? handleLogout() : (activeMenu = item.id)"
               :class="[
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all duration-150',
                 item.id === activeMenu
-                  ? 'bg-[#DAE200] text-dark font-semibold' // Warna aksen sidebar
+                  ? 'bg-[#DAE200] text-gray-900 font-semibold' // Warna Desain Client
                   : 'text-gray-700 hover:bg-gray-100',
                 item.id === 'logout' ? 'text-red-500 hover:bg-red-50' : '',
               ]"
@@ -206,6 +154,7 @@ const cancellations = ref([
       </aside>
 
       <section class="flex-1 bg-white shadow-xl rounded-xl p-8">
+        
         <div v-if="activeMenu === 'account'">
           <h1 class="text-2xl font-bold mb-4">Detail Akun</h1>
 
@@ -214,9 +163,7 @@ const cancellations = ref([
               @click="activeTab = 'informasi_akun'"
               :class="[
                 'px-4 py-2 rounded-lg font-semibold transition',
-                activeTab === 'informasi_akun'
-                  ? getColorClass('accent')
-                  : 'text-gray-700 hover:bg-gray-100',
+                activeTab === 'informasi_akun' ? getColorClass('accent') : 'text-gray-700 hover:bg-gray-100',
               ]"
             >
               Informasi Akun
@@ -225,9 +172,7 @@ const cancellations = ref([
               @click="activeTab = 'informasi_personal'"
               :class="[
                 'px-4 py-2 rounded-lg font-semibold transition',
-                activeTab === 'informasi_personal'
-                  ? getColorClass('accent')
-                  : 'text-gray-700 hover:bg-gray-100',
+                activeTab === 'informasi_personal' ? getColorClass('accent') : 'text-gray-700 hover:bg-gray-100',
               ]"
             >
               Informasi Personal
@@ -235,80 +180,53 @@ const cancellations = ref([
           </div>
 
           <form @submit.prevent="submitProfile" class="space-y-6">
+            
             <div v-if="activeTab === 'informasi_akun'">
               <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="text-sm font-medium">Nama Lengkap</label>
-                  <input
-                    v-model="form.name"
+                <div class="col-span-2">
+                  <label class="text-sm font-medium">Username</label> <input
+                    v-model="form.username" 
                     type="text"
                     class="w-full border rounded-lg p-3"
                   />
-                  <div v-if="form.errors.name" class="text-red-600 text-sm mt-1">{{ form.errors.name }}</div>
+                  <div v-if="form.errors.username" class="text-red-600 text-sm mt-1">{{ form.errors.username }}</div>
                 </div>
                 <div>
                   <label class="text-sm font-medium">Jenis Kelamin</label>
-                  <select
-                    v-model="form.gender"
-                    class="w-full border rounded-lg p-3"
-                  >
+                  <select v-model="form.gender" class="w-full border rounded-lg p-3">
                     <option>Laki-laki</option>
                     <option>Perempuan</option>
                   </select>
-                  <div v-if="form.errors.gender" class="text-red-600 text-sm mt-1">{{ form.errors.gender }}</div>
                 </div>
                 <div>
                   <label class="text-sm font-medium">Tanggal Lahir</label>
-                  <input
-                    v-model="form.birthDate"
-                    type="date"
-                    placeholder="DD/MM/YYYY"
-                    class="w-full border rounded-lg p-3"
-                  />
-                  <div v-if="form.errors.birthDate" class="text-red-600 text-sm mt-1">{{ form.errors.birthDate }}</div>
-                </div>
-                <div>
-                  <label class="text-sm font-medium">Jenis ID</label>
-                  <select
-                    v-model="form.idType"
-                    class="w-full border rounded-lg p-3"
-                  >
-                    <option>KTP</option>
-                    <option>SIM</option>
-                    <option>Paspor</option>
-                  </select>
-                  <div v-if="form.errors.idType" class="text-red-600 text-sm mt-1">{{ form.errors.idType }}</div>
-                </div>
-                <div>
-                  <label class="text-sm font-medium">Nomor ID</label>
-                  <input
-                    v-model="form.idNumber"
-                    type="text"
-                    class="w-full border rounded-lg p-3"
-                  />
-                  <div v-if="form.errors.idNumber" class="text-red-600 text-sm mt-1">{{ form.errors.idNumber }}</div>
+                  <input v-model="form.birthDate" type="date" class="w-full border rounded-lg p-3" />
                 </div>
                 <div>
                   <label class="text-sm font-medium">Kota Asal</label>
-                  <select
-                    v-model="form.city"
-                    class="w-full border rounded-lg p-3"
-                  >
+                  <select v-model="form.city" class="w-full border rounded-lg p-3">
                     <option>Kota Batam</option>
                     <option>Jakarta</option>
                     <option>Surabaya</option>
                   </select>
-                  <div v-if="form.errors.city" class="text-red-600 text-sm mt-1">{{ form.errors.city }}</div>
+                </div>
+                <div>
+                  <label class="text-sm font-medium">Jenis ID</label>
+                  <select v-model="form.idType" class="w-full border rounded-lg p-3">
+                    <option>KTP</option>
+                    <option>SIM</option>
+                  </select>
+                </div>
+                 <div>
+                  <label class="text-sm font-medium">Nomor ID</label>
+                  <input v-model="form.idNumber" type="text" class="w-full border rounded-lg p-3" />
                 </div>
               </div>
 
               <button
                 type="submit"
                 :disabled="form.processing"
-                :class="[
-                  'mt-6 px-6 py-2.5 font-bold rounded-lg shadow-md disabled:opacity-50',
-                  getColorClass('accent'),
-                ]"
+                :class="['mt-6 px-6 py-2.5 font-bold rounded-lg shadow-md disabled:opacity-50', getColorClass('accent')]"
               >
                 Simpan Perubahan
               </button>
@@ -318,39 +236,39 @@ const cancellations = ref([
               <div>
                 <label class="text-sm font-medium">Email</label>
                 <input
-                  :value="initialUserData.email"
+                  :value="form.email"
                   type="email"
-                  class="w-full border rounded-lg p-3 bg-gray-100 text-gray-500"
+                  class="w-full border rounded-lg p-3 bg-gray-100 text-gray-500 cursor-not-allowed"
                   disabled
                 />
-                <p class="text-xs text-gray-500 mt-1">Email tidak dapat diubah di sini.</p>
+                <p class="text-xs text-gray-500 mt-1">Email tidak dapat diubah disini.</p>
               </div>
+              
               <div>
                 <label class="text-sm font-medium">Nomor HP</label>
                 <input
-                  v-model="form.phone"
+                  v-model="form.nomor_telepon"
                   type="text"
                   class="w-full border rounded-lg p-3"
                 />
-                <div v-if="form.errors.phone" class="text-red-600 text-sm mt-1">{{ form.errors.phone }}</div>
+                <div v-if="form.errors.nomor_telepon" class="text-red-600 text-sm mt-1">{{ form.errors.nomor_telepon }}</div>
               </div>
-              
-              <div class="flex gap-4">
-                  <span class="text-sm" :class="{'text-green-600': initialUserData.isEmailVerified}">
-                      Email: {{ initialUserData.isEmailVerified ? 'Terverifikasi' : 'Belum Verifikasi' }}
-                  </span>
-                  <span class="text-sm" :class="{'text-green-600': initialUserData.isPhoneVerified}">
-                      HP: {{ initialUserData.isPhoneVerified ? 'Terverifikasi' : 'Belum Verifikasi' }}
-                  </span>
+
+              <div>
+                <label class="text-sm font-medium">Nomor Plat Kendaraan</label>
+                <input
+                  v-model="form.nomor_plat"
+                  type="text"
+                  placeholder="Contoh: BP 1234 XY"
+                  class="w-full border rounded-lg p-3 bg-yellow-50 focus:ring-2 focus:ring-yellow-400"
+                />
+                <div v-if="form.errors.nomor_plat" class="text-red-600 text-sm mt-1">{{ form.errors.nomor_plat }}</div>
               </div>
               
               <button
                 type="submit"
                 :disabled="form.processing"
-                :class="[
-                  'mt-4 px-6 py-2.5 font-bold rounded-lg shadow-md disabled:opacity-50',
-                  getColorClass('accent'),
-                ]"
+                :class="['mt-4 px-6 py-2.5 font-bold rounded-lg shadow-md disabled:opacity-50', getColorClass('accent')]"
               >
                 Simpan Perubahan
               </button>
@@ -358,108 +276,76 @@ const cancellations = ref([
           </form>
         </div>
 
-        <div v-else-if="activeMenu === 'orders'">
-          <h2 class="text-2xl font-bold mb-4">Pesanan Saya</h2>
-          <div v-if="orders.length">
-            <div v-for="o in orders" :key="o.id" class="border rounded-lg p-4 mb-3 shadow-sm">
-              <div class="font-semibold">{{ o.title }}</div>
-              <div class="text-sm text-gray-500">{{ o.date }}</div>
-              <span class="text-sm font-medium" :class="{'text-green-600': o.status === 'Selesai', 'text-yellow-600': o.status === 'Proses'}">
-                  Status: {{ o.status }}
-              </span>
-            </div>
-          </div>
-          <div v-else class="text-gray-500">Tidak ada pesanan saat ini.</div>
+       <div v-else-if="activeMenu === 'orders'">
+  <h2 class="text-2xl font-bold mb-4">Pesanan Saya</h2>
+  
+  <div v-if="props.orders && props.orders.length > 0">
+    
+    <div v-for="order in props.orders" :key="order.id" class="border rounded-lg p-4 mb-3 shadow-sm flex justify-between items-center bg-white hover:shadow-md transition">
+      <div>
+        <div class="font-bold text-gray-800 text-lg">{{ order.station_name }}</div>
+        <div class="text-sm text-gray-600 flex items-center gap-2">
+            <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-mono">{{ order.booking_number }}</span>
+            <span>• {{ order.location }}</span>
         </div>
+        <div class="text-xs text-gray-400 mt-1">
+            {{ new Date(order.created_at).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+        </div>
+      </div>
+      
+      <div class="text-right">
+        <div class="font-bold text-[#00C853] text-lg">
+            Rp {{ new Intl.NumberFormat('id-ID').format(order.total_price) }}
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 inline-block mt-1">
+            {{ order.status }}
+        </span>
+      </div>
+    </div>
 
-        <div v-else-if="activeMenu === 'news'">
-          <h2 class="text-2xl font-bold mb-4">Berita & Update</h2>
-          <div v-if="newsList.length">
-            <div v-for="n in newsList" :key="n.id" class="border rounded-lg p-4 mb-3 shadow-sm">
-              <div class="font-semibold text-lg mb-1">{{ n.title }}</div>
-              <p class="text-sm text-gray-600">{{ n.excerpt }}</p>
-            </div>
-          </div>
-          <div v-else class="text-gray-500">Tidak ada berita saat ini.</div>
-        </div>
-
-        <div v-else-if="activeMenu === 'promo'">
-          <h2 class="text-2xl font-bold mb-4">Promo</h2>
-          <div v-if="promos.length">
-            <div v-for="p in promos" :key="p.id" class="border border-dashed rounded-lg p-4 mb-3 bg-yellow-50">
-              <div class="font-bold text-lg text-red-600">{{ p.code }}</div>
-              <p class="text-sm text-gray-800">{{ p.desc }}</p>
-            </div>
-          </div>
-          <div v-else class="text-gray-500">Saat ini tidak ada promo yang tersedia.</div>
-        </div>
-
-        <div v-else-if="activeMenu === 'cancellation'">
-          <h2 class="text-2xl font-bold mb-4">Daftar Pembatalan Tiket</h2>
-          <div v-if="cancellations.length">
-            <div v-for="c in cancellations" :key="c.id" class="border rounded-lg p-4 mb-3 shadow-sm bg-red-50">
-              <div class="font-semibold">{{ c.order }} ({{ c.date }})</div>
-              <p class="text-sm text-gray-700">Alasan: {{ c.reason }}</p>
-            </div>
-          </div>
-          <div v-else class="text-gray-500">Tidak ada pembatalan tiket.</div>
-        </div>
+  </div>
+  
+  <div v-else class="text-center py-12 text-gray-500">
+      <p class="mb-2">Belum ada riwayat pemesanan.</p>
+      <Link :href="route('dashboard')" class="text-[#00C853] font-semibold hover:underline">
+          Mulai Booking Sekarang
+      </Link>
+  </div>
+</div>
 
         <div v-else-if="activeMenu === 'password'">
             <h2 class="text-2xl font-bold mb-4">Ubah Kata Sandi</h2>
-
             <form @submit.prevent="changePassword" class="space-y-4 max-w-lg">
                 <div>
                     <label class="text-sm font-medium">Kata Sandi Saat Ini</label>
-                    <input
-                        v-model="passwordForm.current_password"
-                        type="password"
-                        class="w-full border rounded-lg p-3"
-                        autocomplete="current-password"
-                    />
+                    <input v-model="passwordForm.current_password" type="password" class="w-full border rounded-lg p-3" autocomplete="current-password" />
                     <div v-if="passwordForm.errors.current_password" class="text-red-600 text-sm mt-1">{{ passwordForm.errors.current_password }}</div>
                 </div>
                 <div>
                     <label class="text-sm font-medium">Kata Sandi Baru</label>
-                    <input
-                        v-model="passwordForm.password"
-                        type="password"
-                        class="w-full border rounded-lg p-3"
-                        autocomplete="new-password"
-                    />
+                    <input v-model="passwordForm.password" type="password" class="w-full border rounded-lg p-3" autocomplete="new-password" />
                     <div v-if="passwordForm.errors.password" class="text-red-600 text-sm mt-1">{{ passwordForm.errors.password }}</div>
                 </div>
                 <div>
                     <label class="text-sm font-medium">Konfirmasi Kata Sandi Baru</label>
-                    <input
-                        v-model="passwordForm.password_confirmation"
-                        type="password"
-                        class="w-full border rounded-lg p-3"
-                        autocomplete="new-password"
-                    />
-                    <div v-if="passwordForm.errors.password_confirmation" class="text-red-600 text-sm mt-1">{{ passwordForm.errors.password_confirmation }}</div>
+                    <input v-model="passwordForm.password_confirmation" type="password" class="w-full border rounded-lg p-3" autocomplete="new-password" />
                 </div>
-                
-                <button
-                    type="submit"
-                    :disabled="passwordForm.processing"
-                    :class="[
-                        'mt-4 px-6 py-2.5 font-bold rounded-lg shadow-md disabled:opacity-50',
-                        getColorClass('accent'),
-                    ]"
-                >
+                <button type="submit" :disabled="passwordForm.processing" :class="['mt-4 px-6 py-2.5 font-bold rounded-lg shadow-md', getColorClass('accent')]">
                     Ubah Kata Sandi
                 </button>
             </form>
         </div>
 
+        <div v-else>
+            <h2 class="text-2xl font-bold mb-4">{{ menuItems.find(i => i.id === activeMenu)?.label }}</h2>
+            <p class="text-gray-500">Fitur ini belum tersedia.</p>
+        </div>
+
       </section>
     </main>
+    
+    </template>
 
-    <AppFooter />
-</template>
-
-</style>
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
 .font-inter {

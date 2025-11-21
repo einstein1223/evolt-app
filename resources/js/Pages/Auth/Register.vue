@@ -4,7 +4,7 @@
       
       <!-- LOGO -->
       <div class="text-center mb-6">
-        <h1 class="text-2xl font-extrabold text-green-600">EV-VOLT</h1> 
+        <h1 class="text-2xl font-extrabold text-green-600">E-VOLT</h1> 
       </div>
       
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">
@@ -170,7 +170,6 @@ const submit = () => {
 
   form.post(route('register'), {
     onFinish: () => form.reset('password', 'password_confirmation'),
-    onSuccess: () => router.visit(route('login')),
   })
 }
 </script>

@@ -27,13 +27,28 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
-    public function share(Request $request): array
-    {
-        return [
-            ...parent::share($request),
-            'auth' => [
-                'user' => $request->user(),
-            ],
-        ];
-    }
+ public function share(Request $request): array
+{
+    return array_merge(parent::share($request), [
+        'auth' => [
+            'user' => $request->user() ? [
+                'id' => $request->user()->id,
+                'username' => $request->user()->username, // <-- PENTING: Kirim username
+                'email' => $request->user()->email,
+                'nomor_plat' => $request->user()->nomor_plat, // <-- PENTING: Kirim plat
+                'nomor_telepon' => $request->user()->nomor_telepon, // <-- PENTING: Kirim no hp
+                'role' => $request->user()->role, // <-- Kirim role juga
+                // Kirim data lain jika perlu:
+                'gender' => $request->user()->gender,
+                'city' => $request->user()->city,
+                'birthDate' => $request->user()->birthDate,
+                'idType' => $request->user()->idType,
+                'idNumber' => $request->user()->idNumber,
+            ] : null,
+        ],
+        'flash' => [
+            'message' => fn () => $request->session()->get('message'),
+        ],
+    ]);
+}
 }

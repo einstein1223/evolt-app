@@ -1,104 +1,115 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BookingController; // Pastikan ini ada
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
-| Landing & Authentication Routes
+| Landing & Authentication
 |--------------------------------------------------------------------------
-| Rute-rute untuk halaman utama dan form autentikasi (Login/Signup).
-|
 */
 
-// Landing Page (Halaman Utama)
 Route::get('/', function () {
     return Inertia::render('LandingPage');
-    })->name('welcome');
-
-// Rute Register
-Route::get('/register', function () {
-    return Inertia::render('Register');
-    })->name('register');
-
-// Rute Login
-Route::get('/login', function () {
-    return Inertia::render('Login');
-    })->name('login');
-
+})->name('welcome');
 
 /*
 |--------------------------------------------------------------------------
-| Navigation & Info Pages Routes
+| Info Pages
 |--------------------------------------------------------------------------
-| Rute-rute untuk halaman informasi yang ada di navbar.
-|
 */
 
 Route::get('/about', function () {
     return Inertia::render('AboutUs');
-    })->name('about');
+})->name('about');
 
 Route::get('/contact', function () {
     return Inertia::render('ContactUs');
 })->name('contact');
 
+/*
+|--------------------------------------------------------------------------
+| USER (LOGIN DIPERLUKAN)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])->group(function () {
+    
+    // 1. Dashboard
+    Route::get('/dashboard', function () {
+        return Inertia::render('user/UserDashboard');
+    })->name('dashboard');
+
+    // 2. Halaman Profile (GABUNGAN DARI 2 KODE KAMU SEBELUMNYA)
+    Route::get('/user-profile', function () {
+        return Inertia::render('user/UserProfile', [
+            'mustVerifyEmail' => request()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail,
+            'status' => session('status'),
+            // Ambil riwayat booking (PENTING: Relasi harus ada di Model User)
+            'orders' => request()->user()->bookings 
+        ]);
+    })->name('user.profile');
+
+    // 3. Update & Delete Profile
+    Route::patch('/user-profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/user-profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // 4. Map Results
+    Route::get('/map-results', function () {
+        return Inertia::render('user/MapResults');
+    })->name('map.results');
+
+    // 5. Simpan Booking (WAJIB DI DALAM AUTH AGAR TAHU USER ID)
+    Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+});
 
 /*
 |--------------------------------------------------------------------------
-| User, Admin, Operator & Utility Routes
+| ADMIN
 |--------------------------------------------------------------------------
-| Rute yang memerlukan autentikasi atau bersifat utilitas.
-|
 */
 
-// Dashboard (Diasumsikan butuh auth di implementasi akhir)
-Route::get('/dashboard', function () {
-    return Inertia::render('user/UserDashboard');
-    })->name('dashboard');
-
-// Profil Pengguna (Diasumsikan butuh auth)
-Route::get('/user-profile', function () {
-    return Inertia::render('user/UserProfile');
-    })->name('user-profile');
-
-// Halaman Hasil Peta (Simulasi Pencarian)
-Route::get('/map-results', function () {
-    return Inertia::render('user/MapResults');
-    })->name('map.results');
-
-
-
-// Halaman Admin
-Route::get('/admin/profile', function () {
-    return Inertia::render('admin/AdminProfile');
-    })->name('admin-profile');
-
-Route::get('/services', function () {
-    return view('services'); // atau arahkan ke controller jika ada
-    })->name('services');
-
-// Halaman Admin Dashboard
-Route::get('/admin-dashboard', function () {
-    return Inertia::render('admin/AdminDashboard');
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin', function () {
+        return Inertia::render('admin/AdminDashboard');
     })->name('admin.dashboard');
 
-// Halaman Operator
-Route::get('/operator', function () {
-    return Inertia::render('Operator');
-    })->name('operator');
+    Route::get('/admin/profile', function () {
+        return Inertia::render('admin/AdminProfile');
+    })->name('admin.profile');
+});
 
-// Route untuk halaman cetak struk
+/*
+|--------------------------------------------------------------------------
+| OPERATOR
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'operator'])->group(function () {
+    Route::get('/operator', function () {
+       return Inertia::render('operators/Operator');
+    })->name('operator.dashboard');
+});
+
+/*
+|--------------------------------------------------------------------------
+| CETAK STRUK
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/print-struk', function () {
-    $station = request('station');
-    $total   = request('total');
     return Inertia::render('PrintStrukPembayaran', [
-        'station' => $station,
-        'total'   => $total
+        'station' => request('station'),
+        'total'   => request('total')
     ]);
-    })->name('print.struk');
+})->name('print.struk');
 
+/*
+|--------------------------------------------------------------------------
+| Auth routes (Laravel Breeze)
+|--------------------------------------------------------------------------
+*/
 
-// Memasukkan rute-rute otentikasi standar dari Laravel Breeze (jika ada)
 require __DIR__ . '/auth.php';

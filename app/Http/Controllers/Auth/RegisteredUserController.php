@@ -11,6 +11,9 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+
 
 class RegisteredUserController extends Controller
 {
@@ -27,41 +30,36 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-  public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
 {
+    // 1. VALIDASI
     $request->validate([
-        'username' => 'required|string|max:255|unique:'.User::class,
-        'email' => 'required|string|email|max:255|unique:'.User::class,
-        'nomor_plat' => 'required|string|max:9|unique:'.User::class,
-        'nomor_telepon' => 'required|string|max:13',
-        'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        'terms' => 'accepted',
+        'username'      => 'required|string|max:255|unique:users,username',
+        'email'         => 'required|string|email|max:255|unique:users,email',
+        // GANTI max:9 JADI max:20 biar aman (termasuk spasi)
+        'nomor_plat'    => 'required|string|max:20|unique:users,nomor_plat', 
+        'nomor_telepon' => 'required|string|max:15', // 13 kadang mepet kalau ada +62
+        'password'      => ['required', 'confirmed', Rules\Password::defaults()],
     ]);
 
-    $user = User::create([
-        'username' => $request->username,
-        'email' => $request->email,
-        'nomor_plat' => $request->nomor_plat,
+    // HAPUS dd($request->all()); AGAR KODE LANJUT KE BAWAH
+
+    // 2. SIMPAN KE DATABASE
+    User::create([
+        'username'      => $request->username,
+        'email'         => $request->email,
+        'nomor_plat'    => $request->nomor_plat,
         'nomor_telepon' => $request->nomor_telepon,
-        'password' => Hash::make($request->password),
+        'password'      => Hash::make($request->password),
+        'role'          => 'user', // Default role
     ]);
 
-    // 🔹 Buat OTP
-    $otp = rand(100000, 999999);
-    \App\Models\OtpCode::create([
-        'user_id' => $user->id,
-        'otp' => $otp,
-        'expires_at' => now()->addMinutes(5),
-    ]);
-
-    // 🔹 Kirim OTP ke user (sementara log aja dulu)
-    \Log::info("OTP untuk {$user->username}: {$otp}");
-
-    // 🔹 Redirect ke halaman verifikasi OTP
-    return redirect()->route('otp.form', ['user' => $user->id]);
+    // 3. REDIRECT KE LOGIN
+    // Menggunakan 'with' agar bisa menampilkan pesan sukses di halaman login (opsional)
+    return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan login.');
 }
 
-    
+
 
         // 4. (DIHAPUS) KITA TIDAK LOGIN-KAN USER SECARA OTOMATIS
         // Auth::login($user); // <-- Baris ini dinonaktifkan

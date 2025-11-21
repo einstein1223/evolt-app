@@ -18,16 +18,22 @@ class User extends Authenticatable implements MustVerifyEmail // <-- 2. INI DITA
      *
      * @var list<string>
      */
-    protected $fillable = [
-    'name',
+   protected $fillable = [
+    'username',
     'email',
+    'nomor_plat',
+    'nomor_telepon',
+    'password',
+    'role',
     'gender',
     'birthDate',
     'idType',
     'idNumber',
     'city',
     'phone',
+    'role',
 ];
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -50,5 +56,9 @@ class User extends Authenticatable implements MustVerifyEmail // <-- 2. INI DITA
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class)->latest(); // Ambil data terbaru
     }
 }
