@@ -3,26 +3,18 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * Seed the application's database.
+     */
+   public function run(): void
     {
-        // Jalankan AdminSeeder kalau ada
-        $this->call(AdminSeeder::class);
-
-        // Atau langsung buat admin di sini
-        User::updateOrCreate(
-            ['email' => 'admin@evolt.com'],
-            [
-                'username' => 'admin',
-                'nomor_plat' => 'ADMIN001',
-                'nomor_telepon' => '081234567890',
-                'password' => Hash::make('admin123'),
-                'role' => 'admin',
-            ]
-        );
+        $this->call([
+            RoleSeeder::class,       // User & Admin
+            MasterDataSeeder::class, // Stasiun & Mobil
+            BookingSeeder::class,    // Transaksi (NEW)
+        ]);
     }
 }

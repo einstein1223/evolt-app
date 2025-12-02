@@ -1,0 +1,161 @@
+[33mcommit d5aeac5cb8e1d17246c9394cdb8964039a0ab541[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Fri Nov 21 19:09:56 2025 +0700
+
+    fix bug popup konfirmasi pesanan
+
+[33mcommit 79af7a8549ddc905d7453db74ff859e9f3ed636d[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Fri Nov 21 18:11:01 2025 +0700
+
+    fix big ui Waktu Mulai dropdown
+
+[33mcommit 88155e1aee6552df3d8b1688e268b411b84a228c[m
+Author: nurul2304 <159009520+nurul2304@users.noreply.github.com>
+Date:   Fri Nov 21 03:49:46 2025 +0700
+
+    update userdashboatd
+    
+    Added options and dropdown states for brand, type, domicile, and station. Implemented computed properties and watchers to manage station options based on selected domicile.
+
+[33mcommit 0772550d761e4e382e5a20a102f01396d7e60006[m
+Author: nurul2304 <159009520+nurul2304@users.noreply.github.com>
+Date:   Fri Nov 21 03:06:37 2025 +0700
+
+    update mapresults
+
+[33mcommit 3ef742bd9e19b3d1106cf90140360fa5d3053b96[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Thu Nov 20 19:22:09 2025 +0700
+
+    update ui landingpage dan kawan2
+
+[33mcommit 344e9d2ae164e494cc4581e63040b6e59a525f34[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Nov 19 23:50:48 2025 +0700
+
+    update ui landingpage & mapresults
+
+[33mcommit c4eed9ec79156d6db56b1e42a0abd42f7c322381[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Nov 19 18:08:33 2025 +0700
+
+    fix bug again
+
+[33mcommit 0decb3e32a8f9241219db52f60990bf25da4ac41[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Nov 19 14:59:03 2025 +0700
+
+    update map results
+
+[33mcommit 7e7e2aade0adf4ba04b3778533914939664de1ea[m[33m ([m[1;31morigin/blackboxai/update-admin-navbar-mobile[m[33m)[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Nov 19 00:38:10 2025 +0700
+
+    fix bug
+
+[33mcommit 3d63e6c3a1e96a5b463e52c5ec3b91bf115bb223[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Tue Nov 18 23:31:39 2025 +0700
+
+    perbaikan bug & improvisasi lorem ipsum
+
+[33mcommit 6f40b1c87c7426d34285cf17026c355e78779d36[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Tue Nov 18 18:57:15 2025 +0700
+
+    Update admin navbar mobile view to match user dashboard
+    
+    - Remove mobile menu button and dropdown from NavbarAdmin.vue
+    - Display only logo and profile icon on mobile view
+    - Align with user dashboard navbar style for consistency
+
+[33mcommit 5ae55fd0516703ecfb60132a4400f0418bfcf87f[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Tue Nov 18 18:44:54 2025 +0700
+
+    update direct maps & perbaikan lainnya
+
+[33mcommit df43e40669e1df7d2524ee38b004ca39666d7cce[m
+Merge: 2c63d25 eaef57d
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Mon Nov 17 16:03:05 2025 +0700
+
+    Merge branch 'master' of https://github.com/nurul2304/evolt
+
+[33mcommit 2c63d25c50fa222866fc2fe7fb2aee1298913e79[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Mon Nov 17 16:02:05 2025 +0700
+
+    Menambahkan perubahan untuk di push ke master
+
+[33mcommit eaef57d3ab6d60f664b793a13938d07698847547[m
+Author: einstein1223 <seven.stein8@gmail.com>
+Date:   Thu Nov 13 15:28:04 2025 +0700
+
+    update project local to latest version
+
+[33mcommit a9a90da08531883bafdbd3136d7990c2f10d1d83[m
+Merge: 0b21730 cf52137
+Author: einstein1223 <seven.stein8@gmail.com>
+Date:   Wed Nov 12 13:34:51 2025 +0700
+
+    Resolve merge conflicts and update Register.vue
+
+[33mcommit 0b21730a78e955789ec9ab2210c4f9cb59f52377[m
+Author: einstein1223 <seven.stein8@gmail.com>
+Date:   Wed Nov 12 12:45:04 2025 +0700
+
+    Initial commit
+
+[33mcommit cf521377e199df46e7c640f00151f3157f0aac62[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Nov 12 11:11:51 2025 +0700
+
+    update perbaikan tampilan admin
+
+[33mcommit 98c9b7f6fecba5daced90d89289bccdf9516cced[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Mon Nov 10 17:20:51 2025 +0700
+
+    Remove time and date display from MapResults page
+    
+    - Remove 'Waktu Booking' row from station cards to match dashboard style
+    - Remove date and time picker fields from 'Cari Jadwal Pengecasan' modal
+    - Update TODO.md to reflect completed tasks
+
+[33mcommit 3ec4e4850df063aa3b235e0c89d15399c7d50534[m
+Author: nurul2304 <ainiinurul2004@gmail.com>
+Date:   Mon Nov 10 11:46:26 2025 +0700
+
+    update terbaru sementara
+
+[33mcommit be2e675bf1e9c6ce0150ae7a8cfa8d4eb77b0f51[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Thu Oct 30 14:30:57 2025 +0700
+
+    update tampilan map result
+
+[33mcommit 09c9c15e1fb8bda49a2f83ee99503ac7d3be2027[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Sun Oct 26 13:44:10 2025 +0700
+
+    menambahkan halaman operator dan update lainnya
+
+[33mcommit f90c394bd3342407d0d0990b45a2ccfe537d5af1[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Mon Oct 20 12:11:56 2025 +0700
+
+    update di print struk pembayaran dan perbaikan lain2
+
+[33mcommit 85239e4d82a0c852a4daf2269473f039a6236f4c[m
+Author: AKB2184 <hafizakbar633@gmail.com>
+Date:   Wed Oct 15 16:46:08 2025 +0700
+
+    perbaiki dashboard dan landingpage
+
+[33mcommit b80c40a34950002f743fadedb5c5b36841b2d86d[m
+Author: nurul2304 <ainiinurul2004@gmail.com>
+Date:   Mon Oct 13 13:38:42 2025 +0700
+
+    menambahkan profile

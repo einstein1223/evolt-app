@@ -51,19 +51,19 @@ import { useForm, Link } from '@inertiajs/vue3';
 
 // 2. Ganti state management biasa dengan useForm
 const form = useForm({
-  email: 'Username', // Ganti 'username' menjadi 'email'
-  password: 'password',     // Isi dengan password yang valid, misal: 'password'
-  remember: true,
+  email: '',      // Default kosong
+  password: '',   // Default kosong
+  remember: false,
 });
 
 const isPasswordVisible = ref(false);
 
 // 3. Buat fungsi handleLogin untuk mengirim form
+// 2. FUNGSI LOGIN
 const handleLogin = () => {
-  // Kirim data ke rute '/login' di Laravel
-  form.post('/login', {
-    // Setelah selesai, kosongkan field password
-    onFinish: () => form.reset('password'),
+  // Mengirim data ke route login Laravel
+  form.post(route('login'), {
+    onFinish: () => form.reset('password'), // Reset password jika gagal/selesai
   });
 };
 </script>
