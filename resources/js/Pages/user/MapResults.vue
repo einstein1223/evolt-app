@@ -5,7 +5,7 @@ import Navbar from '@/Components/NavbarUser.vue';
 import Footer from '@/Components/Footer.vue';
 import axios from 'axios';
 
-// --- 1. TERIMA DATA ---
+// --- 1. TERIMA DATA DARI DATABASE ---
 const props = defineProps({
     dbStations: { type: Array, default: () => [] },
     dbBrands: { type: Array, default: () => [] },
@@ -17,7 +17,13 @@ const props = defineProps({
 // --- 2. JAM REALTIME ---
 const currentTime = ref(new Date());
 let timerInterval = null;
-const formattedTime = computed(() => currentTime.value.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+
+const formattedTime = computed(() => {
+    return currentTime.value.toLocaleTimeString('id-ID', { 
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    });
+});
+
 const updateTime = () => { currentTime.value = new Date(); };
 
 // --- 3. STATE MANAGEMENT ---
@@ -25,39 +31,43 @@ const showSearchModal = ref(false);
 const showConfirmationModal = ref(false);
 const showQrisPaymentModal = ref(false);
 const showReceiptModal = ref(false);
-const showChargingSessionModal = ref(false);
-
 const selectedStationId = ref(null);
 const selectedStation = computed(() => props.dbStations.find(s => s.id === selectedStationId.value) || null);
 
 const hasStartedBooking = ref(false);
 const activeDropdown = ref(null);
 const isProcessingPayment = ref(false);
+
+// State untuk Kode Transaksi Unik (Baru)
+const transactionCode = ref(''); 
+
+// Form Booking State
 const selectedPort = ref('');
 const selectedDuration = ref('30');
 const selectedStartTime = ref('');
 
-// State Charging & Ping
-const chargingStatus = ref('idle'); 
-const timeLeft = ref(0); 
-const waitingUsers = ref(0); 
-let chargingTimer = null;
-const hasPinged = ref(false); // Status apakah sudah nge-ping
-
 // --- 4. SMART TIME LOGIC ---
-const timeToMinutes = (timeStr) => { if (!timeStr) return 0; const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; };
+const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+};
+
 const timeOptions = computed(() => {
     const options = [];
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const existingBookings = selectedStation.value?.todayBookings || [];
+
     for (let h = 0; h < 24; h++) {
         for (let m of [0, 30]) { 
             const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             const slotStart = h * 60 + m;
             let isDisabled = false;
             let statusText = '';
+
             if (slotStart < currentMinutes - 15) { isDisabled = true; statusText = '(Lewat)'; }
+
             if (!isDisabled && selectedPort.value) {
                 const isClash = existingBookings.some(b => {
                     if (b.port_type !== selectedPort.value) return false;
@@ -72,8 +82,16 @@ const timeOptions = computed(() => {
     }
     return options;
 });
-const setNextAvailableTime = () => { const available = timeOptions.value.find(t => !t.disabled); selectedStartTime.value = available ? available.value : ''; };
-watch(selectedPort, () => { const current = timeOptions.value.find(t => t.value === selectedStartTime.value); if (!current || current.disabled) setNextAvailableTime(); });
+
+const setNextAvailableTime = () => {
+    const available = timeOptions.value.find(t => !t.disabled);
+    selectedStartTime.value = available ? available.value : '';
+};
+
+watch(selectedPort, () => {
+    const currentOption = timeOptions.value.find(t => t.value === selectedStartTime.value);
+    if (!currentOption || currentOption.disabled) setNextAvailableTime();
+});
 
 // --- 5. JARAK & SORTING ---
 const formState = ref({ brand: props.filters.brand || '', type: props.filters.type || '', domicile: props.filters.domicile || '', station: props.filters.station || '' });
@@ -88,6 +106,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*(Math.PI/180))*Math.cos(lat2*(Math.PI/180))*Math.sin(dLon/2)*Math.sin(dLon/2);
     const c = 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); return parseFloat((R*c).toFixed(1)); 
 };
+
 const recommendedStations = computed(() => {
     let result = props.dbStations.map(s => ({...s})); 
     if (formState.value.station && formState.value.station !== 'Pilih Stasiun') result = result.filter(s => s.name === formState.value.station);
@@ -97,13 +116,17 @@ const recommendedStations = computed(() => {
         const dist = calculateDistance(center.lat, center.lng, parseFloat(station.lat), parseFloat(station.lng));
         return { ...station, realDistance: dist, distance: dist + ' km' };
     });
+
     if (selectedStationId.value) {
         result.sort((a, b) => {
             if (a.id === selectedStationId.value) return -1;
             if (b.id === selectedStationId.value) return 1;
             return a.realDistance - b.realDistance;
         });
-    } else { result.sort((a, b) => a.realDistance - b.realDistance); }
+    } else {
+        result.sort((a, b) => a.realDistance - b.realDistance);
+    }
+    
     return result;
 });
 const nearestStations = computed(() => recommendedStations.value);
@@ -128,9 +151,26 @@ const getMarkerColor = (station) => {
     if (station.chargers && station.chargers.includes('Fast')) return '#3b82f6'; 
     return '#00C853'; 
 };
-const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
 const selectStationFromMap = (id) => {
     selectedStationId.value = id;
+};
+
+// FUNGSI SAAT TOMBOL "PESAN" DI CARD DIKLIK
+const reserveStation = (id) => { 
+    selectedStationId.value = id;
+    // 1. Scroll ke atas secara halus
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // 2. Buka modal setelah jeda singkat (biar scroll selesai dulu dikit)
+    setTimeout(() => { 
+        if(selectedStation.value) { 
+            selectedPort.value = 'port-1'; 
+            setNextAvailableTime(); 
+            showConfirmationModal.value = true; 
+            hasStartedBooking.value = true; 
+        } 
+    }, 100); 
 };
 
 onMounted(async () => {
@@ -143,26 +183,42 @@ onMounted(async () => {
         if (formState.value.domicile && domicileCoordinates.value[formState.value.domicile]) { const c = domicileCoordinates.value[formState.value.domicile]; centerMap = [c.lat, c.lng]; }
         map = L.map('map', { zoomControl: false }).setView(centerMap, 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        
         props.dbStations.forEach(s => {
             if(s.lat && s.lng) {
                 const iconUrl = `data:image/svg+xml;charset=UTF-8,${createPinSvg(getMarkerColor(s), s.is_private)}`;
                 const icon = L.icon({ iconUrl, iconSize: [32, 48], iconAnchor: [16, 48], popupAnchor: [0, -40] });
                 const marker = L.marker([s.lat, s.lng], { icon }).addTo(map);
-                marker.on('click', () => selectStationFromMap(s.id));
+                
+                // Klik pin -> update list di bawah (tanpa scroll halaman)
+                marker.on('click', () => {
+                    selectStationFromMap(s.id);
+                });
+
                 const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
                 const typeLabel = s.is_private ? '🏠 Mitra Host' : '⚡ Official Station';
                 const btnColor = s.is_private ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#00C853] hover:bg-[#00A142]';
-                marker.bindPopup(`<div class="text-center p-1 font-sans"><div class="font-bold text-base mb-1 text-gray-800">${s.name}</div><div class="text-xs text-gray-500 mb-2">${s.location}</div><div class="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wide">${typeLabel}</div><a href="${googleMapsUrl}" target="_blank" class="inline-block w-full py-2 px-4 bg-blue-600 text-white text-xs font-bold rounded-lg shadow hover:bg-blue-700 transition mb-2 flex items-center justify-center gap-2 no-underline"><span>🗺️ Buka Maps</span></a><button onclick="document.dispatchEvent(new CustomEvent('book-station', {detail: ${s.id}}))" class="w-full py-2 px-4 ${btnColor} text-white text-xs font-bold rounded-lg shadow transition">🎫 Pesan</button></div>`);
+
+                marker.bindPopup(`
+                    <div class="text-center p-1 font-sans">
+                        <div class="font-bold text-base mb-1 text-gray-800">${s.name}</div>
+                        <div class="text-xs text-gray-500 mb-2">${s.location}</div>
+                        <div class="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wide">${typeLabel}</div>
+                        <a href="${googleMapsUrl}" target="_blank" class="inline-block w-full py-2 px-4 bg-blue-600 text-white text-xs font-bold rounded-lg shadow hover:bg-blue-700 transition mb-2 flex items-center justify-center gap-2 no-underline"><span>🗺️ Buka Maps</span></a>
+                        <button onclick="document.dispatchEvent(new CustomEvent('book-station', {detail: ${s.id}}))" class="w-full py-2 px-4 ${btnColor} text-white text-xs font-bold rounded-lg shadow transition">🎫 Pesan</button>
+                    </div>
+                `);
             }
         });
         document.addEventListener('book-station', (e) => reserveStation(e.detail));
     } catch (e) { console.error(e); }
 });
-onBeforeUnmount(() => { if(timerInterval) clearInterval(timerInterval); if(chargingTimer) clearInterval(chargingTimer); });
+
+onBeforeUnmount(() => { if(timerInterval) clearInterval(timerInterval); });
 
 // --- 7. BOOKING HELPERS ---
 const parsePowerValue = (str) => { const m = (str||'50').match(/([0-9]+)/); return m ? Number(m[1]) : 50; };
-const estimatedDurationMinutes = computed(() => { if (!selectedStation.value || !selectedDuration.value) return 0; if (selectedStation.value.is_private) return Number(selectedDuration.value) * 60; return Math.max(15, Math.round((Number(selectedDuration.value) / parsePowerValue(selectedStation.value.power)) * 60 * 1.1)); });
+const estimatedDurationMinutes = computed(() => { if (!selectedStation.value || !selectedDuration.value) return 0; return Math.max(15, Math.round((Number(selectedDuration.value) / parsePowerValue(selectedStation.value.power)) * 60 * 1.1)); });
 const estimatedEndTime = computed(() => { if(!selectedStartTime.value) return '-'; const [h, m] = selectedStartTime.value.split(':').map(Number); const endM = (h*60 + m + estimatedDurationMinutes.value); return `${String(Math.floor(endM/60)%24).padStart(2,'0')}:${String(endM%60).padStart(2,'0')}`; });
 const priceBreakdown = computed(() => {
     if (!selectedStation.value) return { pricePerKwh: 0, price: 0, service: 0, ppn: 0, total: 0 };
@@ -196,19 +252,15 @@ const availablePorts = computed(() => {
 });
 const portOptions = computed(() => availablePorts.value);
 
-// --- 8. ACTIONS ---
+// --- 8. ACTIONS & PAYMENT ---
 const toggleDropdown = (name) => { activeDropdown.value = activeDropdown.value === name ? null : name; };
 const selectOption = (f, v) => { if(f==='port') selectedPort.value=v; else if(f==='duration') selectedDuration.value=v; else if(f==='time') selectedStartTime.value=v; else formState.value[f]=v; activeDropdown.value = null; };
 const openModal = () => { showSearchModal.value = true; };
 const closeModal = () => { showSearchModal.value = false; };
 const submitSearch = () => closeModal();
-const reserveStation = (id) => { selectedStationId.value = id; scrollToTop(); setTimeout(() => { if(selectedStation.value) { selectedPort.value = 'port-1'; setNextAvailableTime(); showConfirmationModal.value = true; hasStartedBooking.value = true; } }, 100); };
-const cancelProcess = () => { showConfirmationModal.value = false; showQrisPaymentModal.value = false; selectedStationId.value = null; hasStartedBooking.value = false; isProcessingPayment.value = false; showChargingSessionModal.value = false; clearInterval(chargingTimer); };
+const cancelProcess = () => { showConfirmationModal.value = false; showQrisPaymentModal.value = false; selectedStationId.value = null; hasStartedBooking.value = false; isProcessingPayment.value = false; };
 const proceedToPayment = () => { if(!selectedPort.value) return alert("Pilih port"); showConfirmationModal.value = false; showQrisPaymentModal.value = true; };
-const closeReceiptModal = () => { 
-    showReceiptModal.value = false; 
-    startChargingSimulation(); // Mulai simulasi charging
-};
+const closeReceiptModal = () => { showReceiptModal.value = false; selectedStationId.value = null; };
 const openPrintStruk = () => { showReceiptModal.value = false; window.location.href = `/print-struk?station=${encodeURIComponent(JSON.stringify(selectedStation.value))}&total=${encodeURIComponent(calculateTotalFormatted.value)}`; };
 
 const confirmPayment = () => {
@@ -219,54 +271,21 @@ const confirmPayment = () => {
     setTimeout(() => {
         const durasiStr = selectedStation.value.is_private ? `${selectedDuration.value} Jam` : `${estimatedDurationMinutes.value} menit`;
         const bookingData = { booking_number: selectedStation.value.bookingNumber || 'BK-'+Date.now(), station_name: selectedStation.value.name, location: selectedStation.value.location || '-', port_type: selectedPort.value, duration: durasiStr, total_price: Number(priceBreakdown.value.total), booking_time: fullBookingTime };
-        axios.post(route('booking.store'), bookingData).then(() => { router.reload({ only: ['dbStations'] }); isProcessingPayment.value = false; showQrisPaymentModal.value = false; showReceiptModal.value = true; }).catch((e) => { isProcessingPayment.value = false; alert("Gagal: " + (e.response?.data?.message || "Error sistem")); });
+        
+        axios.post(route('booking.store'), bookingData).then((response) => { 
+            // 1. TANGKAP BOOKING NUMBER ASLI DARI DATABASE
+            const newBookingCode = response.data.data.booking_number;
+            transactionCode.value = newBookingCode; // Simpan ke state
+            
+            router.reload({ only: ['dbStations'] }); 
+            isProcessingPayment.value = false; 
+            showQrisPaymentModal.value = false; 
+            showReceiptModal.value = true; 
+        }).catch((e) => { 
+            isProcessingPayment.value = false; 
+            alert("Gagal: " + (e.response?.data?.message || "Error sistem")); 
+        });
     }, 2000);
-};
-
-// --- 9. SIMULASI CHARGING & FITUR PING (BARU) ---
-const startChargingSimulation = () => {
-    timeLeft.value = 10; // Dipercepat jadi 10 detik
-    waitingUsers.value = 0;
-    chargingStatus.value = 'charging';
-    hasPinged.value = false;
-    showChargingSessionModal.value = true;
-
-    chargingTimer = setInterval(() => {
-        if (chargingStatus.value === 'charging') {
-            timeLeft.value--;
-            if (timeLeft.value <= 0) {
-                chargingStatus.value = 'completed';
-                timeLeft.value = 10; 
-            }
-        } else if (chargingStatus.value === 'completed') {
-            timeLeft.value--;
-            if (timeLeft.value <= 0) {
-                chargingStatus.value = 'overstay';
-            }
-        } else if (chargingStatus.value === 'overstay') {
-            if (timeLeft.value % 3 === 0) {
-                waitingUsers.value++;
-            }
-            timeLeft.value++;
-        }
-    }, 1000);
-};
-
-// Fungsi Ping Pemilik (Simulasi)
-const pingOwner = () => {
-    hasPinged.value = true;
-    alert("🔔 Notifikasi Terkirim! Pemilik mobil telah diingatkan untuk segera memindahkan kendaraan.");
-};
-
-const stopChargingSession = () => {
-    clearInterval(chargingTimer);
-    showChargingSessionModal.value = false;
-    if (chargingStatus.value === 'overstay') {
-        alert(`⚠️ Peringatan: Anda telah menghambat ${waitingUsers.value} orang dalam antrian.`);
-    } else {
-        alert("Terima kasih telah tepat waktu! Reputasi Anda naik 🌟");
-    }
-    selectedStationId.value = null;
 };
 
 const dragOffset = ref(0); const isDragging = ref(false); let startY = 0;
@@ -278,18 +297,23 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
 <template>
     <div class="min-h-screen flex flex-col bg-gray-50 font-sans text-gray-800">
         <Navbar />
-
         <main class="flex-grow">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <!-- INFO JAM -->
-                <div class="flex justify-between items-center mb-4">
+                 <div class="flex justify-between items-center mb-4">
                     <div class="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 flex items-center gap-2"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span class="text-sm font-bold text-gray-700 font-mono">{{ formattedTime }}</span></div>
                 </div>
-
-                <!-- Search Bar -->
-                <div class="flex flex-col md:flex-row justify-end items-start md:items-center mb-6"><div class="relative w-full md:w-72 group"><input type="text" placeholder="Filter Lokasi..." class="w-full p-3.5 pl-12 border border-gray-200 rounded-2xl bg-white shadow-sm focus:ring-2 focus:ring-[#00C853] cursor-pointer" @click="openModal" readonly :value="formState.domicile ? `Area: ${formState.domicile}` : 'Cari Stasiun...'"><i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#00C853]"></i></div></div>
+                <!-- SEARCH BAR -->
+                <div class="flex flex-col md:flex-row justify-end items-start md:items-center mb-6">
+                    <div class="relative w-full md:w-72 group">
+                        <input type="text" placeholder="Filter Lokasi..." class="w-full p-3.5 pl-12 border border-gray-200 rounded-2xl bg-white shadow-sm focus:ring-2 focus:ring-[#00C853] cursor-pointer" @click="openModal" readonly :value="formState.domicile ? `Area: ${formState.domicile}` : 'Cari Stasiun...'">
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#00C853]"></i>
+                    </div>
+                </div>
+                
+                <!-- MAP -->
                 <div class="relative w-full mb-8 rounded-3xl shadow-xl overflow-hidden border border-white h-72 md:h-[450px] bg-[#e9f5ff] z-0"><div id="map" class="w-full h-full z-10"></div></div>
                 
+                <!-- LIST STATIONS -->
                 <div class="flex items-center justify-between mb-6"><h2 class="text-xl sm:text-2xl font-bold text-gray-800">Stasiun <span class="text-[#00C853]">Terdekat</span></h2><span class="text-xs sm:text-sm font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">{{ nearestStations.length }} Ditemukan</span></div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
@@ -301,13 +325,21 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
                             <div class="flex items-center justify-between"><span class="text-gray-600"><i class="fas fa-bolt w-5 mr-2 text-yellow-500"></i> Tipe</span><span class="font-semibold text-gray-800">{{ station.chargers ? station.chargers[0] : 'Fast' }}</span></div>
                             <div class="flex items-center justify-between"><span class="text-gray-600"><i class="fas fa-tachometer-alt w-5 mr-2 text-blue-500"></i> Daya</span><span class="font-semibold text-gray-800">{{ station.power }}</span></div>
                         </div>
-                        <div class="mt-auto"><button @click="reserveStation(station.id)" :disabled="!station.isBookable" :class="['w-full py-3.5 rounded-lg sm:rounded-2xl font-semibold text-sm sm:text-base transition-all shadow-lg flex items-center justify-center gap-2', station.isBookable ? (station.is_private ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-[#00C853] text-white hover:bg-[#00A142]') : 'bg-gray-200 text-gray-400 cursor-not-allowed']"><i class="fas fa-ticket-alt"></i> <span>{{ station.isBookable ? 'Pesan Sekarang' : 'Penuh' }}</span></button></div>
+                        <div class="mt-auto">
+                            <button @click="reserveStation(station.id)" :disabled="!station.isBookable" 
+                                :class="['w-full py-3.5 rounded-lg sm:rounded-2xl font-semibold text-sm sm:text-base transition-all shadow-lg flex items-center justify-center gap-2', 
+                                station.isBookable ? (station.is_private ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-[#00C853] text-white hover:bg-[#00A142]') : 'bg-gray-200 text-gray-400 cursor-not-allowed']">
+                                <i class="fas fa-ticket-alt"></i> <span>{{ station.isBookable ? 'Pesan Sekarang' : 'Penuh' }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
         
-        <!-- MODAL LAINNYA SAMA -->
+        <Footer />
+        
+        <!-- MODALS (SEARCH) -->
         <Transition name="slide-up">
             <div v-if="showSearchModal" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-[99999] p-0 sm:p-4" @click.self="closeModal">
                 <div class="bg-white w-full h-auto sm:max-w-2xl rounded-t-[2rem] sm:rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col relative">
@@ -324,6 +356,7 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
             </div>
         </Transition>
 
+        <!-- MODAL CONFIRMATION -->
         <Transition name="slide-up">
             <div v-if="showConfirmationModal && selectedStation" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-[99999] p-0 md:p-8" @click.self="cancelProcess">
                 <div class="bg-white w-full max-h-[90vh] flex flex-col rounded-t-[2rem] sm:rounded-3xl shadow-2xl md:max-w-4xl relative" :style="{ transform: isDragging ? `translateY(${dragOffset}px)` : '' }">
@@ -355,6 +388,8 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
                 </div>
             </div>
         </Transition>
+
+        <!-- MODAL QRIS (PAYMENT) -->
         <Transition name="fade">
             <div v-if="showQrisPaymentModal && selectedStation" class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm flex items-center justify-center z-[99999] p-4" @click.self="cancelProcess">
                 <div class="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md text-center relative overflow-hidden">
@@ -370,15 +405,19 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
                 </div>
             </div>
         </Transition>
+
+        <!-- MODAL RECEIPT -->
         <Transition name="fade">
             <div v-if="showReceiptModal && selectedStation" class="fixed inset-0 bg-[#00C853] flex flex-col items-center justify-center z-[99999] p-4">
                 <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 text-center relative overflow-hidden">
                     <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce"><i class="fas fa-check text-4xl text-[#00C853]"></i></div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-2">Pembayaran Sukses!</h2>
+
+                    <!-- LOGIKA QR CODE VS RESI MANUAL (TETANGGA) -->
                     <div v-if="!selectedStation.is_private">
                         <p class="text-gray-500 mb-6 text-sm">Silakan scan QR Code ini pada mesin charging.</p>
                         <div class="bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-[#00C853] inline-block mb-6">
-                            <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ACCESS_TOKEN_${selectedStation.bookingNumber}`" alt="QR Access" class="w-40 h-40 mix-blend-multiply">
+                            <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ACCESS_TOKEN_${transactionCode || selectedStation.bookingNumber}`" alt="QR Access" class="w-40 h-40 mix-blend-multiply">
                             <p class="text-xs font-mono text-gray-400 mt-2 uppercase tracking-widest">Token Akses</p>
                         </div>
                     </div>
@@ -392,9 +431,10 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
                         </div>
                         <div class="text-center p-3 bg-white rounded-xl border border-orange-100 shadow-sm">
                             <span class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Kode Booking</span>
-                            <div class="text-2xl font-mono font-black text-gray-900 tracking-widest">{{ selectedStation.bookingNumber.replace('BK-', '') }}</div>
+                            <div class="text-2xl font-mono font-black text-gray-900 tracking-widest">{{ (transactionCode || selectedStation.bookingNumber).replace('BK-', '') }}</div>
                         </div>
                     </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <button @click="openPrintStruk" class="w-full py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 shadow-lg transition flex items-center justify-center gap-2"><i class="fas fa-print"></i> Cetak Struk</button>
                         <button @click="closeReceiptModal" class="w-full py-3 text-gray-600 font-bold bg-gray-100 rounded-xl hover:bg-gray-200 transition">Tutup</button>
@@ -402,65 +442,11 @@ const onTouchEnd = () => { isDragging.value = false; if(dragOffset.value>100) { 
                 </div>
             </div>
         </Transition>
-
-        <!-- === MODAL CHARGING SESSION (DENGAN FITUR PING) === -->
-        <Transition name="fade">
-            <div v-if="showChargingSessionModal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[99999] p-4">
-                <div class="w-full max-w-sm text-center relative">
-                    
-                    <!-- 1. STATUS: CHARGING -->
-                    <div v-if="chargingStatus === 'charging'">
-                        <div class="relative w-40 h-40 mx-auto mb-8">
-                            <div class="absolute inset-0 border-4 border-[#00C853]/30 rounded-full animate-ping"></div>
-                            <div class="absolute inset-0 border-4 border-[#00C853] rounded-full flex items-center justify-center bg-black">
-                                <div class="text-white"><span class="text-4xl font-bold">{{ timeLeft }}s</span><p class="text-xs text-[#00C853] mt-1">Mengisi...</p></div>
-                            </div>
-                        </div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Sedang Mengisi Daya</h2>
-                        <p class="text-gray-400 text-sm">Mohon tunggu hingga proses selesai.</p>
-                    </div>
-
-                    <!-- 2. STATUS: COMPLETED -->
-                    <div v-else-if="chargingStatus === 'completed'">
-                        <div class="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                            <i class="fas fa-check-circle text-5xl text-[#00C853]"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Pengisian Selesai!</h2>
-                        <p class="text-green-400 font-bold text-lg mb-4">+10 Poin Reputasi 🌟</p>
-                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">Terima kasih telah mengisi daya tepat waktu! Slot ini sekarang bisa digunakan oleh teman komunitas EV lainnya.</p>
-                        <button @click="stopChargingSession" class="w-full py-3 bg-[#00C853] hover:bg-[#00A142] text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-1">Selesai & Cabut</button>
-                    </div>
-                    
-                    <!-- 3. STATUS: OVERSTAY (FITUR PING) -->
-                    <div v-else-if="chargingStatus === 'overstay'">
-                         <div class="w-32 h-32 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                            <i class="fas fa-exclamation-circle text-5xl text-red-600"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Slot Masih Terpakai!</h2>
-                        <p class="text-red-400 font-bold text-lg mb-4">Menunggu: {{ waitingUsers }} Orang</p>
-                        
-                        <!-- TOMBOL PING (BARU) -->
-                        <button 
-                            @click="pingOwner" 
-                            :disabled="hasPinged"
-                            class="mb-4 px-6 py-2 rounded-full font-bold text-sm border-2 transition-all"
-                            :class="hasPinged ? 'bg-gray-700 border-gray-700 text-gray-400 cursor-not-allowed' : 'bg-transparent border-white text-white hover:bg-white hover:text-red-600 animate-pulse'"
-                        >
-                            {{ hasPinged ? '🔔 Notifikasi Terkirim' : '🔔 Ping Pemilik' }}
-                        </button>
-
-                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">Mohon segera pindahkan kendaraan Anda. Teman komunitas lain sedang menunggu giliran.</p>
-                        <button @click="stopChargingSession" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-1">Saya Sudah Pindah</button>
-                    </div>
-                </div>
-            </div>
-        </Transition>
-
     </div>
 </template>
 
 <style scoped>
-/* STYLE TETAP SAMA SEPERTI SEBELUMNYA */
+/* STYLE SAMA */
 .dropdown-trigger { width: 100%; padding: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background-color: #ffffff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 200ms; }
 .dropdown-trigger.active { border-color: #00C853; box-shadow: 0 0 0 2px rgba(0, 200, 83, 0.2); }
 .dropdown-menu { position: absolute; top: 100%; margin-top: 0.5rem; width: 100%; background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #f3f4f6; z-index: 100; max-height: 15rem; overflow-y: auto; }
