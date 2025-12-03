@@ -6,6 +6,7 @@ use App\Http\Controllers\MapResultController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\ScanController; // <--- PENTING: Import ScanController
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -26,6 +27,12 @@ Route::get('/about', function () {
 Route::get('/contact', function () {
     return Inertia::render('ContactUs');
 })->name('contact');
+
+// --- ROUTE UNTUK ALAT SCANNER (MESIN CHARGER) ---
+// Ditaruh di luar middleware auth agar bisa diakses sebagai "Mesin"
+Route::get('/scan-station', [ScanController::class, 'index'])->name('scan.index');
+Route::post('/scan-verify', [ScanController::class, 'verify'])->name('scan.verify');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -67,7 +74,6 @@ Route::middleware(['auth'])->group(function () {
     })->name('print.struk');
 
     // --- BECOME A HOST (CHARGER TETANGGA) ---
-    // Pindahkan ke dalam sini agar aman
     Route::get('/become-host', function () {
         return Inertia::render('user/BecomeHost');
     })->name('become.host');
