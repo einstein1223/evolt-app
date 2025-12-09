@@ -2,7 +2,7 @@
   <div class="min-h-screen flex flex-col bg-gray-50">
     <Navbar />
 
-    <main class="flex-grow">
+    <main class="flex-grow pt-24">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="bg-white rounded-xl p-6 shadow-2xl w-full max-w-md mx-auto transform transition-all duration-300">
           <div class="flex justify-between items-start mb-4">
@@ -55,15 +55,18 @@
 
             <div class="flex flex-col items-center pt-4">
               <img :src="qrUrl" alt="QR Struk" class="w-40 h-40 rounded-md shadow-inner mb-2">
-              <div class="text-xs text-gray-500 text-center">Tunjukkan QR ini saat tiba di lokasi untuk memulai sesi charging</div>
+              <div class="text-xs text-gray-500 text-center">Tunjukkan QR ini saat tiba di lokasi untuk memulai sesi
+                charging</div>
             </div>
           </div>
 
           <div class="pt-6 space-y-3">
-            <button @click="doDownload" type="button" class="w-full py-3 bg-[#00C853] text-white font-medium rounded-xl hover:bg-[#00A142] transition duration-300 shadow-md">
+            <button @click="doDownload" type="button"
+              class="w-full py-3 bg-[#00C853] text-white font-medium rounded-xl hover:bg-[#00A142] transition duration-300 shadow-md">
               Unduh PDF
             </button>
-            <button @click="goBack" type="button" class="w-full py-3 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50">
+            <button @click="goBack" type="button"
+              class="w-full py-3 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50">
               Kembali
             </button>
           </div>
@@ -303,7 +306,7 @@ const doDownload = () => {
 
   // beri waktu agar QR ter-load lalu munculkan print dialog
   setTimeout(() => {
-    try { w.focus(); w.print(); } catch(e) {}
+    try { w.focus(); w.print(); } catch (e) { }
   }, 700);
 };
 
@@ -329,9 +332,20 @@ const formatTime = (dateTime) => {
 <style scoped>
 /* memastikan modal/komponen cocok untuk cetak */
 @media print {
-  body * { visibility: hidden; }
-  .print-root, .print-root * { visibility: visible; }
-  .print-root { position: absolute; left: 0; top: 0; width: 100%; }
+  body * {
+    visibility: hidden;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible;
+  }
+
+  .print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
 }
-.print-root { /* helper class in case needed */ }
 </style>

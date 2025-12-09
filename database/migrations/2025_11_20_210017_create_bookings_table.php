@@ -6,38 +6,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // HANYA BOLEH ADA SATU Schema::create DISINI
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
+            // Relasi ke user (penting agar muncul di profile)
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             
-            // Relasi ke tabel users
-            // onDelete('cascade') artinya jika user dihapus, history bookingnya ikut hilang
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); 
+            // Data Transaksi
+            $table->string('booking_number'); // Contoh: BK-123
+            $table->string('station_name');   // Contoh: SPKLU Batam Center
+            $table->string('location');       // Contoh: Batam Center
+            $table->string('port_type');      // Contoh: Fast Charging
+            $table->string('duration');       // Contoh: 60 menit
+            $table->decimal('total_price', 15, 2); // Harga
             
-            $table->string('booking_number'); // Kode booking (BK1001)
-            $table->string('station_name');   // Nama Station
-            $table->string('location');       // Lokasi
-            $table->string('port_type');      // Tipe Charger
-            $table->string('duration');       // Durasi
-            $table->decimal('total_price', 10, 2); // Total Harga
-            $table->string('status')->default('Selesai'); // Status
-            $table->dateTime('booking_date'); // Waktu Booking
+            // Status & Waktu
+            $table->string('status')->default('Selesai'); 
+            $table->dateTime('booking_date');
             
-            $table->timestamps(); // created_at & updated_at
+            $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Ini fungsi untuk menghapus tabel jika kamu melakukan rollback
         Schema::dropIfExists('bookings');
     }
 };

@@ -1,122 +1,225 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import Navbar from '@/Components/Navbar.vue';
-import Footer from '@/Components/Footer.vue'; 
+import Footer from '@/Components/Footer.vue';
 
-// --- Data Halaman (Ganti dengan Props Inertia dari Backend Anda) ---
+// --- Data Dummy (Updated with Real Image Placeholders) ---
 const teamMembers = [
-    { id: 1, name: 'John Kalabras', title: 'CEO', image: '/images/profile.jpg' },
-    { id: 2, name: 'Philips shane murli', title: 'COO', image: '/images/profile.jpg' },
-    { id: 3, name: 'Equanim shamir mohamad', title: 'Tech Head', image: '/images/profile.jpg' },
-    { id: 4, name: 'Jenka Imdkragith', title: 'Head of UX', image: '/images/profile.jpg' },
+    {
+        id: 1,
+        name: 'John Kalabras',
+        title: 'Chief Executive Officer',
+        image: 'http://googleusercontent.com/image_collection/image_retrieval/5999713973728639077'
+    },
+    {
+        id: 2,
+        name: 'Sarah Murlie',
+        title: 'Chief Operating Officer',
+        image: 'http://googleusercontent.com/image_collection/image_retrieval/18050838888377291004'
+    },
+    {
+        id: 3,
+        name: 'Equanim Shamir',
+        title: 'Head of Technology',
+        image: 'http://googleusercontent.com/image_collection/image_retrieval/5999713973728639077'
+    },
+    {
+        id: 4,
+        name: 'Jenka Imdkragith',
+        title: 'Head of User Experience',
+        image: 'http://googleusercontent.com/image_collection/image_retrieval/18050838888377291004'
+    },
 ];
 
 const services = [
-    { title: 'Web Application', iconClass: 'bg-red-100 text-red-500' },
-    { title: 'SEO', iconClass: 'bg-green-100 text-green-500' },
-    { title: 'Mobile Applications', iconClass: 'bg-purple-100 text-purple-500' },
-    { title: 'AR/VR', iconClass: 'bg-pink-100 text-pink-500' },
+    { title: 'Web Application', desc: 'Membangun web modern yang cepat.', iconClass: 'bg-red-50 text-red-500' },
+    { title: 'SEO Optimization', desc: 'Tingkatkan peringkat pencarian.', iconClass: 'bg-green-50 text-green-500' },
+    { title: 'Mobile Apps', desc: 'Aplikasi Android & iOS native.', iconClass: 'bg-purple-50 text-purple-500' },
+    { title: 'AR/VR Experience', desc: 'Teknologi masa depan imersif.', iconClass: 'bg-pink-50 text-pink-500' },
 ];
 
-const imageUrls = {
-    img1: '/images/kerja.png',
-    img2: '/images/rapat.png', 
-    img3: '/images/diskusi.png',
-    img4: '/images/2pria.png', 
+// Images for Hero Section
+const heroImages = {
+    main: 'https://i.pinimg.com/1200x/8e/e5/b0/8ee5b0deeda4280e9ee06510fedf2367.jpg', // Team working
+    sub1: 'https://i.pinimg.com/736x/61/48/5d/61485dc5e88b9144ebc1d40a3485be46.jpg', // Meeting
+    sub2: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Shake hands / close up
 };
 </script>
 
 <template>
-    <Head title="About Us" />
 
-    <Navbar />
-    
-    <main class="text-gray-800">
+    <Head title="About Us - Siapa Kami" />
 
-        <section class="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                
-                <div class="space-y-4 order-2 lg:order-1">
-                    <div class="grid grid-cols-2 gap-x-0">
-                        <img :src="imageUrls.img1" alt="Tim bekerja di kantor" class="w-full h-48 object-cover rounded-xl shadow-lg">
-                        <img :src="imageUrls.img2" alt="Rapat tim" class="w-48 h-full object-cover rounded-xl shadow-lg mb-8 ms-8">
-                    </div>
-                    <img :src="imageUrls.img3" alt="Diskusi serius" class="w-full h-48 object-cover rounded-xl shadow-lg">
+    <div class="min-h-screen flex flex-col font-sans text-gray-600 bg-white">
+        <Navbar />
+
+        <main class="flex-grow">
+
+            <!-- SECTION 1: HERO & STORY -->
+            <!-- Menggunakan pola asimetris yang lebih organik dan 'friendly' -->
+            <section class="relative pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden">
+                <!-- Dekorasi Background Blob -->
+                <div
+                    class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-green-50 rounded-full blur-3xl opacity-50 -z-10">
+                </div>
+                <div
+                    class="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-blue-50 rounded-full blur-3xl opacity-50 -z-10">
                 </div>
 
-                <div class="lg:pt-16 order-1 lg:order-2">
-                    <p class="text-green-500 font-semibold  uppercase mb-2">Tentang Kami</p>
-                    <h3 class="text-3xl sm:text-5xl font-semibold leading-tight text-gray-900 mb-6">
-                        Lorem ipsum is simply dummy text of the printing.
-                    </h3>
-                    <p class="text-lg text-gray-600 mb-6">
-                        Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.
-                    </p>
-                    <img :src="imageUrls.img4" alt="Dua pria bekerja di laptop" class="w-full h-64 object-cover rounded-xl shadow-lg mt-6 hidden lg:block"> 
-                </div>
-            </div>
-        </section>
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 
-        <section class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div class="max-w-4xl mx-auto">
-                <h2 class="text-3xl sm:text-4xl font-semibold leading-snug text-gray-900 mb-6">
-                    Lorem ipsum is simply dummy text of the printing.
-                </h2>
-                <p class="text-gray-600 text-lg">
-                    <span class="font-bold text-green-500">KODE TECHNOLOGY (PVT) LTD</span> is a team of experienced mobile and web applications and website builders measuring dozens of clients from all over the world. We offer a full range of services for all popular platforms, including Android & iOS. We build and develop mobile applications for several top platforms, including Android & iOS.
-                </p>
-            </div>
-        </section>
-        
-        <section class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                
-                <div class="pr-0 lg:pr-10 order-2 lg:order-1">
-                    <div class="border-l-4 border-green-500 pl-4 mb-4">
-                        <h2 class="text-3xl sm:text-4xl font-semibold leading-snug text-gray-900">
-                            Lorem ipsum is simply dummy text of the printing.
-                        </h2>
-                    </div>
-                    <p class="text-gray-600 text-lg mb-6">
-                        KODE TECHNOLOGY (PVT) LTD is a team of experienced mobile and web applications and website builders measuring dozens of clients from all over the world. We offer a full range of services for all popular platforms and completed projects.
-                    </p>
-                    <Link href="/contact" class="inline-block px-8 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-300">
-                        Contact Us
-                    </Link>
-                </div>
+                        <!-- Text Content (Order 1 on Mobile for Context) -->
+                        <div class="order-1 lg:order-1 text-center lg:text-left">
+                            <div
+                                class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-600 text-sm font-bold tracking-wide uppercase mb-6">
+                                👋 Tentang Kami
+                            </div>
+                            <h1
+                                class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+                                Membangun Solusi Digital dengan <span class="text-green-500">Hati & Teknologi</span>
+                            </h1>
+                            <p class="text-lg sm:text-xl text-gray-600 leading-relaxed mb-8 text-balance">
+                                Kode Technology hadir bukan sekadar membuat aplikasi, tapi membantu bisnis Anda tumbuh
+                                melalui inovasi yang manusiawi dan mudah digunakan.
+                            </p>
 
-                <div class="grid grid-cols-2 gap-4 p-6 bg-white rounded-xl shadow-xl border border-gray-100 order-1 lg:order-2">
-                    <div v-for="service in services" :key="service.title" class="flex flex-col items-start p-4 bg-gray-50 rounded-lg transition duration-300">
-                        <div class="p-3 mb-2 rounded-full" :class="service.iconClass">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                            <!-- Stats Row -->
+                            <div
+                                class="flex flex-wrap justify-center lg:justify-start gap-8 sm:gap-12 border-t border-gray-100 pt-8">
+                                <div>
+                                    <span class="block text-3xl font-bold text-gray-900">50+</span>
+                                    <span class="text-sm text-gray-500 font-medium">Klien Happy</span>
+                                </div>
+                                <div>
+                                    <span class="block text-3xl font-bold text-gray-900">120+</span>
+                                    <span class="text-sm text-gray-500 font-medium">Proyek Selesai</span>
+                                </div>
+                                <div>
+                                    <span class="block text-3xl font-bold text-gray-900">5th</span>
+                                    <span class="text-sm text-gray-500 font-medium">Pengalaman</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900">{{ service.title }}</h3>
+
+                        <!-- Image Collage (Order 2) -->
+                        <!-- Dibuat rounded-3xl agar lebih ramah/friendly -->
+                        <div class="order-2 lg:order-2 relative">
+                            <div class="grid grid-cols-2 gap-4">
+                                <img :src="heroImages.main" alt="Tim Kolaborasi"
+                                    class="col-span-2 w-full h-64 sm:h-80 object-cover rounded-[2.5rem] shadow-xl transform hover:scale-[1.02] transition duration-500">
+                                <img :src="heroImages.sub1" alt="Rapat Santai"
+                                    class="w-full h-40 sm:h-48 object-cover rounded-[2rem] shadow-lg transform hover:-translate-y-1 transition duration-300 delay-100">
+                                <div class="relative overflow-hidden rounded-[2rem] shadow-lg h-40 sm:h-48">
+                                    <img :src="heroImages.sub2" alt="Diskusi"
+                                        class="w-full h-full object-cover transform hover:scale-110 transition duration-700">
+                                    <div class="absolute inset-0 bg-green-500/10 mix-blend-multiply"></div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+            </section>
 
-            </div>
-        </section>
-        
-        <section class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <h2 class="text-2xl font-bold text-gray-900 mb-8">Our Team</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                
-                <div v-for="member in teamMembers" :key="member.id" class="text-left">
-                    <img :src="member.image" :alt="member.name" class="w-full h-72 object-cover rounded-lg mb-3 shadow-lg">
-                    <p class="text-sm text-gray-500 uppercase">{{ member.title }}</p>
-                    <p class="text-xl font-semibold text-gray-900">{{ member.name }}</p>
+            <!-- SECTION 2: MISSION & VALUES -->
+            <section class="py-16 lg:py-24 bg-gray-50 rounded-t-[3rem] sm:rounded-t-[4rem]">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-3xl mx-auto text-center mb-16">
+                        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">Misi Kami</h2>
+                        <p class="text-lg text-gray-600 leading-relaxed">
+                            <span class="font-bold text-green-600">KODE TECHNOLOGY</span> adalah tim yang berdedikasi
+                            penuh. Kami percaya teknologi tidak harus rumit. Misi kami adalah menyederhanakan proses
+                            bisnis Anda melalui aplikasi web dan mobile yang intuitif, cepat, dan menyenangkan untuk
+                            digunakan.
+                        </p>
+                    </div>
+
+                    <!-- Services Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                        <div v-for="(service, index) in services" :key="index"
+                            class="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100 group">
+                            <div
+                                :class="`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${service.iconClass} transition-transform group-hover:scale-110 duration-300`">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">{{ service.title }}</h3>
+                            <p class="text-gray-500 text-sm leading-relaxed">{{ service.desc }}</p>
+                        </div>
+                    </div>
                 </div>
+            </section>
 
-            </div>
-            <div class="flex justify-center mt-8 space-x-2">
-                <span class="block w-2 h-2 bg-gray-300 rounded-full"></span>
-                <span class="block w-2 h-2 bg-green-500 rounded-full"></span>
-                <span class="block w-2 h-2 bg-gray-300 rounded-full"></span>
-                <span class="block w-2 h-2 bg-gray-300 rounded-full"></span>
-            </div>
-        </section>
+            <!-- SECTION 3: TEAM -->
+            <section class="py-16 lg:py-24 bg-white">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-12">
+                        <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Bertemu Tim Hebat Kami</h2>
+                        <p class="text-gray-500 max-w-xl mx-auto">Orang-orang berdedikasi di balik setiap baris kode dan
+                            desain pixel-perfect.</p>
+                    </div>
 
-    </main>
-    
-    <Footer />
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+                        <div v-for="member in teamMembers" :key="member.id" class="group text-center">
+                            <div class="relative inline-block mb-5">
+                                <!-- Lingkaran dekoratif di belakang foto -->
+                                <div
+                                    class="absolute inset-0 bg-green-100 rounded-full transform translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 transition duration-300">
+                                </div>
+                                <img :src="member.image" :alt="member.name"
+                                    class="relative w-48 h-48 sm:w-56 sm:h-56 object-cover rounded-full border-4 border-white shadow-lg group-hover:shadow-xl transition duration-300 mx-auto">
+                            </div>
+
+                            <h3
+                                class="text-xl font-bold text-gray-900 group-hover:text-green-600 transition duration-300">
+                                {{ member.name }}</h3>
+                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wide mt-1">{{ member.title }}
+                            </p>
+
+                            <!-- Social Icons (Optional Decoration) -->
+                            <div
+                                class="flex justify-center space-x-3 mt-4 opacity-0 group-hover:opacity-100 transition duration-300 translate-y-2 group-hover:translate-y-0">
+                                <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                                <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Box -->
+                    <div
+                        class="mt-20 bg-green-500 rounded-[2.5rem] p-8 sm:p-12 lg:p-16 text-center text-white relative overflow-hidden shadow-2xl">
+                        <!-- Pattern Background -->
+                        <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"
+                            style="background-image: radial-gradient(circle, #fff 2px, transparent 2.5px); background-size: 20px 20px;">
+                        </div>
+
+                        <div class="relative z-10 max-w-2xl mx-auto">
+                            <h2 class="text-2xl sm:text-3xl font-bold mb-6">Punya Ide Brilian? Mari Wujudkan.</h2>
+                            <p class="text-green-50 text-lg mb-8">Diskusikan kebutuhan proyek Anda bersama kami.
+                                Konsultasi gratis!</p>
+                            <Link href="/contact"
+                                class="inline-block bg-white text-green-600 font-bold text-lg px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 hover:scale-105 transition duration-300">
+                                Hubungi Kami Sekarang
+                            </Link>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+        <Footer />
+    </div>
 </template>
+
+<style scoped>
+/* Opsional: Jika ingin scroll bar lebih halus */
+html {
+    scroll-behavior: smooth;
+}
+</style>

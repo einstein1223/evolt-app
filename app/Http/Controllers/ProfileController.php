@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule; 
-use App\Models\User; // Pastikan Import Model User
+use App\Models\User; 
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,56 +20,68 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        return Inertia::render('user/UserProfile', [ // Sesuaikan path jika foldernya beda
+        // [PERBAIKAN] Hapus dd() ini agar halaman Profile BISA DIBUKA
+        // dd($request->user()->bookings); 
+
+        return Inertia::render('user/UserProfile', [ 
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'orders' => $request->user()->bookings, 
         ]);
     }
 
     /**
-     * Update data profil user.
+     * Update data profil user (Nama, Email, dll).
      */
     public function update(Request $request): RedirectResponse
     {
-        $user = $request->user();
-
-        // 1. VALIDASI DATA
-        // Kita pastikan data yang dikirim sesuai aturan
         $validated = $request->validate([
             'username' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
             
-            // Email harus unique, TAPI abaikan (ignore) kalau itu email milik user ini sendiri
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
-            
-            // Validasi Custom Field E-VOLT
-            'nomor_plat' => ['required', 'string', 'max:20'], 
+            // Data Custom E-VOLT
+            'nomor_plat' => ['required', 'string', 'max:20'],
             'nomor_telepon' => ['required', 'string', 'max:15'],
-            
-            // Validasi Field Opsional (Boleh kosong/nullable)
+
+            // Data Opsional
             'gender' => ['nullable', 'string'],
-            'city' => ['nullable', 'string'],
             'birthDate' => ['nullable', 'date'],
+            'city' => ['nullable', 'string'],
             'idType' => ['nullable', 'string'],
             'idNumber' => ['nullable', 'string'],
         ]);
 
-        // 2. MASUKKAN DATA KE MODEL
-        $user->fill($validated);
+        $request->user()->fill($validated);
 
-        // Jika email diganti, reset status verifikasinya
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
         }
 
-        // 3. SIMPAN KE DATABASE
-        $user->save();
+        $request->user()->save();
 
-        // 4. REDIRECT KEMBALI DENGAN PESAN
-        return Redirect::route('user.profile')->with('message', 'Profile berhasil diupdate!');
+        return Redirect::route('user.profile')->with('message', 'Profile berhasil diperbarui!');
     }
 
     /**
-     * Delete account (Biarkan default jika belum mau dipakai)
+     * [BARU] Update data kendaraan user (Dipanggil dari Pop-up Dashboard).
+     */
+     public function updateVehicle(Request $request): RedirectResponse
+    {
+
+        $validated = $request->validate([
+            'nomor_plat' => 'required|string|max:20',
+            'car_brand'  => 'required|string',
+            'car_type'   => 'required|string',
+            'car_series' => 'required|string',
+        ]);
+
+        $request->user()->update($validated);
+
+        return Redirect::back()->with('message', 'Data Kendaraan Berhasil Disimpan!');
+    }
+
+    /**
+     * Delete account.
      */
     public function destroy(Request $request): RedirectResponse
     {

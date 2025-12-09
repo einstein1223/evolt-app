@@ -4,21 +4,19 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-
-
 
 class RegisteredUserController extends Controller
 {
     /**
-     * Menampilkan halaman registrasi.
+     * Display the registration view.
      */
     public function create(): Response
     {
@@ -26,49 +24,34 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Menangani permintaan registrasi yang masuk.
+     * Handle an incoming registration request.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request): RedirectResponse
 {
-    // 1. VALIDASI
     $request->validate([
-        'username'      => 'required|string|max:255|unique:users,username',
-        'email'         => 'required|string|email|max:255|unique:users,email',
-        // GANTI max:9 JADI max:20 biar aman (termasuk spasi)
-        'nomor_plat'    => 'required|string|max:20|unique:users,nomor_plat', 
-        'nomor_telepon' => 'required|string|max:15', // 13 kadang mepet kalau ada +62
-        'password'      => ['required', 'confirmed', Rules\Password::defaults()],
+        'username' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'nomor_telepon' => 'required|string|max:15',
+        'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
     ]);
 
-    // HAPUS dd($request->all()); AGAR KODE LANJUT KE BAWAH
-
-    // 2. SIMPAN KE DATABASE
-    User::create([
-        'username'      => $request->username,
-        'email'         => $request->email,
-        'nomor_plat'    => $request->nomor_plat,
+    $user = \App\Models\User::create([
+        'username' => $request->username,
+        'email' => $request->email,
         'nomor_telepon' => $request->nomor_telepon,
-        'password'      => Hash::make($request->password),
-        'role'          => 'user', // Default role
+        'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        'role' => 'user',
     ]);
 
-    // 3. REDIRECT KE LOGIN
-    // Menggunakan 'with' agar bisa menampilkan pesan sukses di halaman login (opsional)
-    return redirect()->route('login')->with('success', 'Registrasi berhasil! Silakan login.');
+    event(new Registered($user));
+
+    // --- [HAPUS ATAU KOMENTARI BARIS INI] ---
+    // Auth::login($user); 
+    // ----------------------------------------
+
+    // Ubah Redirect ke halaman Login dengan pesan sukses
+    return redirect(route('login'))->with('message', 'Registrasi Berhasil! Silakan Login.');
 }
-
-
-
-        // 4. (DIHAPUS) KITA TIDAK LOGIN-KAN USER SECARA OTOMATIS
-        // Auth::login($user); // <-- Baris ini dinonaktifkan
-
-        // 5. KIRIM RESPON REDIRECT KE HALAMAN LOGIN
-        // Inertia akan menangkap redirect ini dan mengarahkan
-        // frontend (Vue) ke halaman login.
-     
 }
-
-
-

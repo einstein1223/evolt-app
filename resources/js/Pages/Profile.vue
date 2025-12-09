@@ -12,18 +12,17 @@ const props = defineProps({
   orders: { type: Array, default: () => [] }
 });
 
-// 2. SETUP FORM PROFILE (INI BAGIAN PENTINGNYA)
-// Pastikan nama field di sini sama persis dengan yang ada di Middleware
+// 2. SETUP FORM PROFILE
 const form = useForm({
   username: authUser.username || authUser.name || "",
   email: authUser.email || "",
   nomor_telepon: authUser.nomor_telepon || "",
 
-  // Data Kendaraan (Ambil dari authUser agar terisi otomatis)
+  // Data Kendaraan (Biasanya Read-Only karena diupdate di Dashboard, tapi bisa diedit jika mau)
   nomor_plat: authUser.nomor_plat || "",
-  car_brand: authUser.car_brand || "",   // <--- Perbaikan: Ambil dari DB
-  car_series: authUser.car_series || "", // <--- Perbaikan: Ambil dari DB
-  car_type: authUser.car_type || "",     // <--- Perbaikan: Ambil dari DB
+  car_brand: authUser.car_brand || "",
+  car_series: authUser.car_series || "",
+  car_type: authUser.car_type || "",
 
   // Data Personal Lainnya
   gender: authUser.gender || "Laki-laki",
@@ -99,7 +98,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
 
       <!-- SIDEBAR -->
       <aside class="w-full md:w-72 flex-shrink-0">
-        <div class="bg-white shadow-lg rounded-2xl p-6 sticky top-28 border border-gray-100">
+        <div class="bg-white shadow-lg rounded-2xl p-6 sticky top-24 border border-gray-100">
           <div class="mb-8 text-center">
             <div
               class="w-20 h-20 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl border-2 border-green-100">
@@ -108,13 +107,9 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
             <h3 class="text-xl font-bold text-gray-900 truncate">{{ form.username }}</h3>
             <p class="text-sm text-gray-500 truncate">{{ form.email }}</p>
 
-            <!-- Badge Mobil di Sidebar -->
-            <div v-if="form.car_brand"
-              class="mt-3 p-2 bg-green-50 rounded-lg border border-green-100 text-xs text-left">
-              <div class="font-bold text-green-800 flex items-center gap-1">
-                <span>🚗</span> {{ form.car_brand }} {{ form.car_series }}
-              </div>
-              <div class="text-green-600 font-mono mt-1 pl-5">{{ form.nomor_plat }}</div>
+            <div v-if="form.nomor_plat"
+              class="mt-3 inline-block px-3 py-1 bg-[#f0fdf4] text-[#16a34a] rounded-full text-xs font-bold border border-green-200">
+              {{ form.nomor_plat }}
             </div>
           </div>
 
@@ -137,7 +132,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
 
       <!-- MAIN CONTENT -->
       <section
-        class="flex-1 bg-white shadow-xl rounded-2xl p-6 sm:p-10 min-h-[600px] border border-gray-100 relative overflow-hidden mt-8">
+        class="flex-1 bg-white shadow-xl rounded-2xl p-6 sm:p-10 min-h-[600px] border border-gray-100 relative overflow-hidden">
 
         <!-- 1. MENU AKUN -->
         <div v-if="activeMenu === 'account'" class="animate-fade-in">
@@ -190,7 +185,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
               </div>
             </div>
 
-            <!-- Tab Data Kendaraan (DATA MOBIL MUNCUL DISINI) -->
+            <!-- Tab Data Kendaraan -->
             <div v-else-if="activeTab === 'informasi_personal'" class="space-y-6 animate-slide-up">
               <div class="grid sm:grid-cols-2 gap-6">
                 <div>
@@ -205,51 +200,48 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
                 </div>
               </div>
 
-              <!-- CARD KENDARAAN (TAMPILAN DATA MOBIL) -->
-              <div class="bg-[#fcfdfa] border border-[#e3fbd8] rounded-2xl p-6 relative overflow-hidden shadow-sm">
+              <!-- CARD KENDARAAN -->
+              <div class="bg-[#fcfdfa] border border-[#e3fbd8] rounded-2xl p-6 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-4 opacity-10">
                   <span class="text-8xl">🚗</span>
                 </div>
-                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-[#e3fbd8] pb-2">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <span class="w-1 h-5 bg-[#00C853] rounded-full"></span> Data Mobil Anda
                 </h3>
                 <div class="grid grid-cols-2 gap-4">
                   <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Merk</label>
-                    <!-- Menampilkan data car_brand dari database -->
                     <input v-model="form.car_brand"
-                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm focus:ring-2 focus:ring-[#00C853]"
-                      readonly placeholder="Belum diisi">
+                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
+                      readonly>
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Model</label>
                     <input v-model="form.car_series"
                       class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
-                      readonly placeholder="Belum diisi">
+                      readonly>
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Varian</label>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Tipe</label>
                     <input v-model="form.car_type"
                       class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
-                      readonly placeholder="Belum diisi">
+                      readonly>
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Plat Nomor</label>
-                    <!-- Plat nomor bisa diedit -->
                     <input v-model="form.nomor_plat"
-                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-900 font-bold text-sm uppercase focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853]"
-                      placeholder="Belum diisi">
+                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-900 font-bold text-sm uppercase focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853]">
                   </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-3 italic">*Data mobil diambil saat verifikasi awal. Hubungi admin
-                  jika
-                  ingin mengganti unit mobil.</p>
+                <p class="text-xs text-gray-400 mt-3 italic">*Hanya Plat Nomor yang dapat diubah langsung. Hubungi admin
+                  untuk
+                  ubah jenis mobil.</p>
               </div>
 
               <div class="pt-2 flex justify-end">
                 <button type="submit" :disabled="form.processing"
                   class="px-8 py-3.5 font-bold rounded-xl shadow-lg bg-[#00C853] text-white hover:bg-[#008e3b] transition transform active:scale-95 disabled:opacity-70">
-                  Simpan Perubahan
+                  Simpan Data
                 </button>
               </div>
             </div>
@@ -279,8 +271,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
                   {{ new Date(order.created_at).toLocaleDateString('id-ID', {
                     weekday: 'long', day: 'numeric', month:
                       'long',
-                    year: 'numeric', hour: '2-digit', minute: '2-digit'
-                  }) }}
+                    year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
                 </div>
               </div>
 

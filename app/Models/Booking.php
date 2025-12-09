@@ -9,7 +9,6 @@ class Booking extends Model
 {
     use HasFactory;
 
-    // Izinkan kolom ini diisi
     protected $fillable = [
         'user_id',
         'booking_number',
@@ -22,7 +21,7 @@ class Booking extends Model
         'booking_date',
     ];
 
-    // Relasi: Booking milik User
+    // Relasi ke User (Agar bisa dipanggil di Profile)
     public function user()
     {
         return $this->belongsTo(User::class);

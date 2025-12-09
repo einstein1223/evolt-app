@@ -33,22 +33,29 @@ class HandleInertiaRequests extends Middleware
         'auth' => [
             'user' => $request->user() ? [
                 'id' => $request->user()->id,
-                'username' => $request->user()->username, // <-- PENTING: Kirim username
+                'name' => $request->user()->name, // Nama bawaan
                 'email' => $request->user()->email,
-                'nomor_plat' => $request->user()->nomor_plat, // <-- PENTING: Kirim plat
-                'nomor_telepon' => $request->user()->nomor_telepon, // <-- PENTING: Kirim no hp
-                'role' => $request->user()->role, // <-- Kirim role juga
-                // Kirim data lain jika perlu:
+                
+                // --- TAMBAHKAN DATA CUSTOM INI ---
+                'username' => $request->user()->username,
+                'nomor_plat' => $request->user()->nomor_plat,
+                'nomor_telepon' => $request->user()->nomor_telepon,
                 'gender' => $request->user()->gender,
-                'city' => $request->user()->city,
                 'birthDate' => $request->user()->birthDate,
+                'city' => $request->user()->city,
                 'idType' => $request->user()->idType,
                 'idNumber' => $request->user()->idNumber,
+                'nomor_plat' => $request->user()->nomor_plat,
+                'car_brand' => $request->user()->car_brand,
+                'car_type' => $request->user()->car_type,
+                'car_series' => $request->user()->car_series,
+                // ---------------------------------
             ] : null,
         ],
         'flash' => [
             'message' => fn () => $request->session()->get('message'),
         ],
     ]);
-}
+
+    }
 }

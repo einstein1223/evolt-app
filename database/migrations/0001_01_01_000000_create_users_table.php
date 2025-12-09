@@ -9,30 +9,30 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        // --- INI BAGIAN YANG KITA UBAH ---
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            
-            // $table->string('name'); // Kolom 'name' dihapus
+   public function up(): void
+{
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('username'); // Pastikan ini username, BUKAN name
+        $table->string('email')->unique();
+        $table->string('nomor_plat')->nullable();     // Tambahan kolom
+        $table->string('nomor_telepon')->nullable();  // Tambahan kolom
+        $table->string('role')->default('user');      // Tambahan kolom
+        
+        // Kolom bawaan lainnya...
+        $table->timestamp('email_verified_at')->nullable();
+        $table->string('password');
+        $table->rememberToken();
+        $table->timestamps();
+        
+        // Kolom opsional lain dari fillable kamu (kalau mau dipakai)
+        $table->string('gender')->nullable();
+        $table->date('birthDate')->nullable();
+        $table->string('idType')->nullable();
+        $table->string('idNumber')->nullable();
+        $table->string('city')->nullable();
+    });
 
-    // Kolom identitas utama
-    $table->string('username')->unique();
-    $table->string('email')->unique();
-    $table->string('nomor_plat')->unique();
-    $table->string('nomor_telepon');
-
-    // Kolom OTP dummy
-    $table->string('otp_code')->nullable();
-    $table->timestamp('otp_expires_at')->nullable();
-
-    // Kolom standar Laravel
-    $table->timestamp('email_verified_at')->nullable();
-    $table->string('password');
-    $table->rememberToken();
-    $table->timestamps();
-});
         // --- BATAS PERUBAHAN ---
 
 

@@ -27,24 +27,34 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-   public function store(LoginRequest $request)
-{
-    $request->authenticate();
+    public function store(LoginRequest $request): RedirectResponse
+    {
+        $request->authenticate();
 
-    $request->session()->regenerate();
+        $request->session()->regenerate();
 
-    $user = $request->user();
+        // Ambil data user yang baru login
+        $user = $request->user();
 
-    // Redirect berdasarkan role
-    if ($user->role === 'admin') {
-        return redirect()->intended('/admin');
-    } elseif ($user->role === 'operator') {
-        return redirect()->intended('/operator');
+        // --- LOGIKA PENGALIHAN (TRAFFIC LIGHT) ---
+        
+        // 1. JALUR KHUSUS ADMIN (Hard Redirect)
+        // Kita gunakan ->route() agar MEMAKSA pindah, mengabaikan history 'intended'
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        // 2. JALUR KHUSUS OPERATOR (Hard Redirect)
+        // Ini memperbaiki masalah Operator nyasar ke Dashboard User
+        if ($user->role === 'operator') {
+            return redirect()->route('operator.dashboard');
+        }
+
+        // 3. JALUR UMUM (USER BIASA)
+        // Gunakan intended() agar user dikembalikan ke halaman terakhir yang dia buka (UX bagus)
+        // Jika tidak ada history, default ke 'dashboard'
+        return redirect()->intended(route('dashboard'));
     }
-
-    return redirect()->intended('/dashboard'); // pengguna biasa
-}
-
 
     /**
      * Destroy an authenticated session.

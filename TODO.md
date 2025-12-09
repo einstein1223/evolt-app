@@ -1,2 +1,4 @@
--   [ ] Remove "Langkah 3" text from the span in Langkah 3 section
--   [ ] Replace lorem ipsum paragraph with relevant text matching the title
+# TODO: Update Login Page Background
+
+-   [x] Edit resources/js/Pages/Auth/Login.vue to change .login-page background to #CCFF00
+-   [x] Test the login page visually to ensure background displays correctly
