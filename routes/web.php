@@ -48,6 +48,19 @@ Route::middleware(['auth'])->group(function () {
     // --- MAP & BOOKING ---
     Route::get('/map-results', [MapResultController::class, 'index'])->name('map.results');
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+    
+    // --- STATUS CHARGING ---
+    Route::get('/status-charging', function () {
+        $booking = \App\Models\Booking::where('user_id', auth()->id())->latest()->first();
+        
+        return Inertia::render('user/Statuscharging', [
+            'stationName' => $booking ? $booking->station_name : '-',
+            'location'    => $booking ? $booking->location : '-',
+            'duration'    => $booking ? $booking->duration : 0,
+            'power'       => '50 kW', // Default/Placeholder as it's not in Booking model
+            'type'        => $booking ? $booking->port_type : '-',
+        ]);
+    })->name('status.charging');
 
     // --- USER PROFILE ---
     Route::get('/user-profile', function () {

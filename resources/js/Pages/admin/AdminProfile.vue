@@ -221,7 +221,7 @@ const chartOptions = reactive({
 
     <Navbar />
 
-    <main class="flex-1 max-w-7xl mx-auto w-full p-6 flex flex-col md:flex-row md:space-x-8 space-y-6 md:space-y-0">
+    <main class="flex-1 max-w-7xl mx-auto w-full pt-24 p-6 flex flex-col md:flex-row md:space-x-8 space-y-6 md:space-y-0">
 
         <aside class="w-full md:w-64 bg-white shadow-lg rounded-xl p-5 flex flex-col h-fit md:sticky md:top-6">
             <div class="mb-6 leading-tight">

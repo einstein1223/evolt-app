@@ -28,9 +28,8 @@ const submit = () => {
 
 <template>
   <div class="register-page">
-    <!-- Gambar Samping (Opsional, mengikuti gaya Login Anda jika ada) -->
-    <!-- Jika tidak ingin gambar samping melayang, bisa dihapus -->
-    <!-- <img src="/images/logo.jpg" alt="Logo" class="side-logo" /> -->
+    <img src="/images/logo.jpg" alt="Logo Left" class="side-logo left-logo" />
+    <img src="/images/logo.jpg" alt="Logo Right" class="side-logo right-logo" />
 
     <main class="register-container">
       <!-- LOGO -->
@@ -42,43 +41,25 @@ const submit = () => {
       <p class="subtitle">Lengkapi data di bawah untuk bergabung.</p>
 
       <form class="register-form" @submit.prevent="submit">
-        
+
         <!-- Username -->
         <div class="input-group">
           <label for="username">Username</label>
-          <input 
-            type="text" 
-            id="username" 
-            v-model="form.username" 
-            placeholder="Masukkan username" 
-            required
-          >
+          <input type="text" id="username" v-model="form.username" placeholder="Masukkan username" required>
           <div v-if="form.errors.username" class="error-message">{{ form.errors.username }}</div>
         </div>
 
         <!-- Email -->
         <div class="input-group">
           <label for="email">Email</label>
-          <input 
-            type="email" 
-            id="email" 
-            v-model="form.email" 
-            placeholder="nama@email.com" 
-            required
-          >
+          <input type="email" id="email" v-model="form.email" placeholder="nama@email.com" required>
           <div v-if="form.errors.email" class="error-message">{{ form.errors.email }}</div>
         </div>
 
         <!-- Nomor Telepon -->
         <div class="input-group">
           <label for="nomor_telepon">Nomor Telepon</label>
-          <input 
-            type="tel" 
-            id="nomor_telepon" 
-            v-model="form.nomor_telepon" 
-            placeholder="08123456789" 
-            required
-          >
+          <input type="tel" id="nomor_telepon" v-model="form.nomor_telepon" placeholder="08123456789" required>
           <div v-if="form.errors.nomor_telepon" class="error-message">{{ form.errors.nomor_telepon }}</div>
         </div>
 
@@ -86,17 +67,20 @@ const submit = () => {
         <div class="input-group">
           <label for="password">Password</label>
           <div class="password-wrapper">
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              id="password" 
-              v-model="form.password" 
-              placeholder="******"
-              required 
-              autocomplete="new-password"
-            >
+            <input :type="showPassword ? 'text' : 'password'" id="password" v-model="form.password" placeholder="******"
+              required autocomplete="new-password">
             <button type="button" id="togglePassword" @click="showPassword = !showPassword">
-              <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.243 4.243L6.228 6.228" /></svg>
+              <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.243 4.243L6.228 6.228" />
+              </svg>
             </button>
           </div>
           <div v-if="form.errors.password" class="error-message">{{ form.errors.password }}</div>
@@ -105,14 +89,8 @@ const submit = () => {
         <!-- Confirm Password -->
         <div class="input-group">
           <label for="password_confirmation">Konfirmasi Password</label>
-          <input 
-            type="password" 
-            id="password_confirmation" 
-            v-model="form.password_confirmation" 
-            placeholder="******"
-            required 
-            autocomplete="new-password"
-          >
+          <input type="password" id="password_confirmation" v-model="form.password_confirmation" placeholder="******"
+            required autocomplete="new-password">
         </div>
 
         <!-- Terms -->
@@ -129,7 +107,7 @@ const submit = () => {
       </form>
 
       <div class="login-link">
-        Sudah punya akun? 
+        Sudah punya akun?
         <Link :href="route('login')">LOGIN DI SINI</Link>
       </div>
     </main>
@@ -146,16 +124,15 @@ const submit = () => {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  /* Menggunakan gambar background yang sama dengan login atau warna solid */
-  background-image: url('/images/login.jpg'); 
-  background-size: cover;
-  background-position: center;
-  background-color: #f0f4f8; 
+  background-color: #fff;
+  position: relative;
+  overflow: hidden;
 }
 
 .register-container {
   width: 100%;
-  max-width: 500px; /* Sedikit lebih lebar dari login karena form lebih panjang */
+  max-width: 500px;
+  /* Sedikit lebih lebar dari login karena form lebih panjang */
   background-color: #fff;
   border-radius: 24px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -170,8 +147,13 @@ const submit = () => {
   margin-bottom: 0.5rem;
 }
 
-.logo .green { color: #84cc16; }
-.logo .dark { color: #1f2937; }
+.logo .green {
+  color: #84cc16;
+}
+
+.logo .dark {
+  color: #1f2937;
+}
 
 .welcome-title {
   font-size: 1.5rem;
@@ -224,6 +206,48 @@ const submit = () => {
   position: relative;
 }
 
+.side-logo {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  /* Adjust size as needed */
+  height: auto;
+  opacity: 0.8;
+  /* Optional: adjust opacity if needed */
+  z-index: 1;
+}
+
+.left-logo {
+  left: 80px;
+  /* Brought closer from -50px */
+}
+
+.right-logo {
+  right: 80px;
+  /* Brought closer from -50px */
+}
+
+@media (max-width: 1024px) {
+  .side-logo {
+    width: 200px;
+    left: 20px;
+    /* Adjust for smaller screens */
+  }
+
+  .right-logo {
+    right: 20px;
+    /* Adjust for smaller screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .side-logo {
+    display: none;
+    /* Hide on smaller screens if they overlap too much */
+  }
+}
+
 #togglePassword {
   position: absolute;
   top: 50%;
@@ -236,7 +260,11 @@ const submit = () => {
   padding: 0;
   display: flex;
 }
-#togglePassword svg { width: 20px; height: 20px; }
+
+#togglePassword svg {
+  width: 20px;
+  height: 20px;
+}
 
 .form-options {
   margin-top: 1rem;
@@ -271,7 +299,8 @@ const submit = () => {
 
 .register-btn {
   width: 100%;
-  background-color: #d9ef54; /* Warna Lime Button dari Login */
+  background-color: #d9ef54;
+  /* Warna Lime Button dari Login */
   color: #1f2937;
   font-weight: 700;
   font-size: 1rem;
@@ -323,6 +352,7 @@ const submit = () => {
   .register-page {
     padding: 1rem;
   }
+
   .register-container {
     padding: 2rem 1.5rem;
   }
