@@ -33,6 +33,10 @@ Route::get('/contact', function () {
 Route::get('/scan-station', [ScanController::class, 'index'])->name('scan.index');
 Route::post('/scan-verify', [ScanController::class, 'verify'])->name('scan.verify');
 
+Route::get('/gabung-mitra', function () {
+    return Inertia::render('GabungMitra');
+})->name('gabung.mitra');
+
 
 /*
 |--------------------------------------------------------------------------

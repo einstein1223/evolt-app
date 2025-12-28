@@ -40,6 +40,7 @@ onUnmounted(() => {
         <Link :href="route('welcome')" class="hover:text-[#00C853] transition duration-150">Beranda</Link>
         <Link :href="route('about')" class="hover:text-[#00C853] transition duration-150">Tentang Kami</Link>
         <Link :href="route('contact')" class="hover:text-[#00C853] transition duration-150">Hubungi Kami</Link>
+        <Link :href="route('gabung.mitra')" class="hover:text-[#00C853] transition duration-150">Gabung Mitra</Link>
       </nav>
 
       <div class="hidden md:flex items-center ml-6">
@@ -78,6 +79,9 @@ onUnmounted(() => {
             <Link @click="isMenuOpen = false" :href="route('contact')"
               class="py-2 px-3 block hover:bg-lime-50 rounded-lg text-gray-700 font-medium transition duration-150">
               Hubungi Kami</Link>
+            <Link @click="isMenuOpen = false" :href="route('gabung.mitra')"
+              class="py-2 px-3 block hover:bg-lime-50 rounded-lg text-gray-700 font-medium transition duration-150">
+              Gabung Mitra</Link>
 
             <Link @click="isMenuOpen = false" :href="route('login')"
               class="mt-4 px-6 py-2 border-2 border-[#00C853] text-[#00C853] font-semibold rounded-lg hover:bg-[#00C853] hover:text-white transition duration-300 shadow-md text-center">
