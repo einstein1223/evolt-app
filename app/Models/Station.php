@@ -9,34 +9,49 @@ class Station extends Model
 {
     use HasFactory;
 
-    protected $table = 'stations';
-
     protected $fillable = [
-        'name', 
-        'city', 
-        'address', 
-        'operational_hours',
-        'lat', 
-        'lng', 
-        'chargers_detail', 
-        'status',
-        'price', 
-        'service_fee'
+        'user_id',
+        'name',
+        'address',
+        'city',
+        'lat',
+        'lng',
+        'type',
+        'location_type',
+        'price',
+        'service_fee',
+        
+        // --- TAMBAHAN WAJIB UTK FITUR BUKA TUTUP ---
+        'is_open', // <--- Ini kuncinya agar bisa di-update dari Host Dashboard
+        // -------------------------------------------
+
+        'status', // (Opsional: Tetap simpan string 'Tersedia'/'Penuh' jika perlu)
+        'is_private',
+        'chargers_detail',
+        'photo',
     ];
 
     protected $casts = [
-        'chargers_detail' => 'array',
+        'chargers_detail' => 'array', 
+        
+        // --- CASTING AGAR JADI TRUE/FALSE ---
+        'is_open' => 'boolean', // <--- Agar di Vue nanti terbaca true/false, bukan 1/0
+        // ------------------------------------
+
+        'is_private' => 'boolean',
+        'lat' => 'float',
+        'lng' => 'float',
+        'price' => 'integer',
     ];
 
-    // --- RELASI PENTING (TAMBAHKAN INI) ---
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function bookings()
     {
-        // Relasi ke tabel bookings
-        // Parameter 2 ('station_name'): Nama kolom di tabel bookings
-        // Parameter 3 ('name'): Nama kolom di tabel stations yang cocok
+        // Hubungkan berdasarkan 'station_name' karena di tabel booking kita simpan nama stasiun
         return $this->hasMany(Booking::class, 'station_name', 'name');
     }
-    
-    // (Opsional) Jika nanti kamu mau pakai relasi Location lagi
-    // public function location() { ... }
 }

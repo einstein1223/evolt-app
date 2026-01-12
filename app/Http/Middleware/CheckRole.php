@@ -3,21 +3,22 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    public function handle($request, Closure $next, ...$roles)
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        if (!in_array(Auth::user()->role, $roles)) {
-            abort(403, 'Tidak punya akses.');
+        // Cek apakah user punya role yang sesuai
+        if (! $request->user() || $request->user()->role !== $role) {
+            // Jika tidak sesuai, lempar error 403 atau redirect
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 
         return $next($request);
     }
 }
-

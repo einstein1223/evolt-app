@@ -1,33 +1,28 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Navbar from '@/Components/Navbar.vue';
 import Footer from '@/Components/Footer.vue';
+import ContactForm from '@/Components/ContactForm.vue';
 
 // --- Data Dummy (Updated with Real Image Placeholders) ---
 const teamMembers = [
     {
         id: 1,
-        name: 'John Kalabras',
+        name: 'Einstein',
         title: 'Chief Executive Officer',
-        image: 'http://googleusercontent.com/image_collection/image_retrieval/5999713973728639077'
+        image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=800&auto=format&fit=crop'
     },
     {
         id: 2,
-        name: 'Sarah Murlie',
-        title: 'Chief Operating Officer',
-        image: 'http://googleusercontent.com/image_collection/image_retrieval/18050838888377291004'
+        name: 'Akbar Hafiz',
+        title: 'Chief Technology Officer',
+        image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=800&auto=format&fit=crop'
     },
     {
         id: 3,
-        name: 'Equanim Shamir',
-        title: 'Head of Technology',
-        image: 'http://googleusercontent.com/image_collection/image_retrieval/5999713973728639077'
-    },
-    {
-        id: 4,
-        name: 'Jenka Imdkragith',
-        title: 'Head of User Experience',
-        image: 'http://googleusercontent.com/image_collection/image_retrieval/18050838888377291004'
+        name: 'Nurul Aini',
+        title: 'Chief Marketing Officer',
+        image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop'
     },
 ];
 
@@ -40,8 +35,8 @@ const services = [
 
 // Images for Hero Section
 const heroImages = {
-    main: 'https://i.pinimg.com/1200x/8e/e5/b0/8ee5b0deeda4280e9ee06510fedf2367.jpg', // Team working
-    sub1: 'https://i.pinimg.com/736x/61/48/5d/61485dc5e88b9144ebc1d40a3485be46.jpg', // Meeting
+    main: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200', // Team working
+    sub1: 'https://images.unsplash.com/photo-1531498860502-7c67cf02f657?auto=format&fit=crop&q=80&w=600', // Meeting
     sub2: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Shake hands / close up
 };
 </script>
@@ -162,7 +157,7 @@ const heroImages = {
                             desain pixel-perfect.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
                         <div v-for="member in teamMembers" :key="member.id" class="group text-center">
                             <div class="relative inline-block mb-5">
                                 <!-- Lingkaran dekoratif di belakang foto -->

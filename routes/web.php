@@ -6,133 +6,97 @@ use App\Http\Controllers\MapResultController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperatorController;
-use App\Http\Controllers\ScanController; // <--- PENTING: Import ScanController
+use App\Http\Controllers\ScanController;
+use App\Http\Controllers\HostController; 
+use App\Http\Controllers\Auth\PasswordController; 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\Booking;
 
 /*
 |--------------------------------------------------------------------------
-| 1. PUBLIC ROUTES (Tanpa Login)
+| 1. PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
-
-Route::get('/', function () {
-    return Inertia::render('LandingPage');
-})->name('welcome');
-
-Route::get('/about', function () {
-    return Inertia::render('AboutUs');
-})->name('about');
-
-Route::get('/contact', function () {
-    return Inertia::render('ContactUs');
-})->name('contact');
-
-// --- ROUTE UNTUK ALAT SCANNER (MESIN CHARGER) ---
-// Ditaruh di luar middleware auth agar bisa diakses sebagai "Mesin"
-Route::get('/scan-station', [ScanController::class, 'index'])->name('scan.index');
-Route::post('/scan-verify', [ScanController::class, 'verify'])->name('scan.verify');
-
-Route::get('/gabung-mitra', function () {
-    return Inertia::render('GabungMitra');
-})->name('gabung.mitra');
-
+Route::get('/', function () { return Inertia::render('LandingPage'); })->name('welcome');
+Route::get('/about', function () { return Inertia::render('AboutUs'); })->name('about');
+Route::get('/contact', function () { return Inertia::render('ContactUs'); })->name('contact');
+Route::get('/gabung-mitra', function () { return Inertia::render('GabungMitra'); })->name('gabung.mitra');
+Route::get('/ev-pedia', function () {
+    return Inertia::render('EVPedia');
+})->name('ev.pedia');
 
 /*
 |--------------------------------------------------------------------------
-| 2. USER ROUTES (WAJIB LOGIN)
+| 2. GENERAL AUTHENTICATED ROUTES (SEMUA ROLE BISA AKSES)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware(['auth'])->group(function () {
     
     // --- DASHBOARD ---
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // --- MAP & BOOKING ---
-    Route::get('/map-results', [MapResultController::class, 'index'])->name('map.results');
+    // --- FITUR UMUM ---
+    Route::get('/map-results', [MapResultController::class, 'index'])->name('map.results'); 
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
     
-    // --- STATUS CHARGING ---
     Route::get('/status-charging', function () {
-        $booking = \App\Models\Booking::where('user_id', auth()->id())->latest()->first();
-        
+        $booking = Booking::where('user_id', auth()->id())->latest()->first();
         return Inertia::render('user/Statuscharging', [
             'stationName' => $booking ? $booking->station_name : '-',
             'location'    => $booking ? $booking->location : '-',
             'duration'    => $booking ? $booking->duration : 0,
-            'power'       => '50 kW', // Default/Placeholder as it's not in Booking model
+            'power'       => '50 kW', 
             'type'        => $booking ? $booking->port_type : '-',
         ]);
     })->name('status.charging');
 
-    // --- USER PROFILE ---
-    Route::get('/user-profile', function () {
-        return Inertia::render('user/UserProfile', [
-            'mustVerifyEmail' => request()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail,
-            'status' => session('status'),
-            'orders' => request()->user()->bookings, 
-        ]);
-    })->name('user.profile');
+    // --- PROFILE ROUTES ---
+    // Sesuai kode terakhir kamu, URL-nya 'user/profile'
+    Route::get('user/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('user/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('user/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Update Password
+    Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
 
-    // Update Data Kendaraan (Pop-up Dashboard)
-    Route::post('/profile/vehicle', [ProfileController::class, 'updateVehicle'])->name('profile.vehicle.update');
-
-    // Update & Hapus Akun
-    Route::patch('/user-profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/user-profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // --- CETAK STRUK ---
+    // Print Struk
     Route::get('/print-struk', function () {
         return Inertia::render('PrintStrukPembayaran', [
             'station' => request('station'),
             'total'   => request('total')
         ]);
     })->name('print.struk');
-
-    // --- BECOME A HOST (CHARGER TETANGGA) ---
-    Route::get('/become-host', function () {
-        return Inertia::render('user/BecomeHost');
-    })->name('become.host');
 });
 
 /*
 |--------------------------------------------------------------------------
-| 3. ADMIN ROUTES
+| 3. ROLE SPECIFIC ROUTES (DIBATASI MIDDLEWARE)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'admin'])->group(function () {
-    
-    // Dashboard Admin
-    Route::get('/admin-dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
 
-    // Manajemen Stasiun
-    Route::post('/admin/station', [AdminController::class, 'storeStation'])->name('admin.station.store');
-    Route::delete('/admin/station/{id}', [AdminController::class, 'destroyStation'])->name('admin.station.destroy');
+// MITRA HOST
+Route::middleware(['auth', 'role:host'])->group(function () {
+    Route::get('/host-dashboard', [HostController::class, 'index'])->name('host.dashboard');
+    Route::post('/host/toggle-status', [HostController::class, 'toggleStatus'])->name('host.toggle');
     
-    // Manajemen Master Data
-    Route::post('/admin/brand', [AdminController::class, 'storeBrand'])->name('admin.brand.store');
-    Route::post('/admin/type', [AdminController::class, 'storeType'])->name('admin.type.store');
-    
-    // Profile Admin
-    Route::get('/admin/profile', function () {
-        return Inertia::render('admin/AdminProfile');
-    })->name('admin.profile');
+    // --- [BARU] ROUTE DETAIL TAMU ---
+    // Ini agar saat nama tamu diklik, bisa masuk ke halaman detail
+    Route::get('/host/guest/{userId}', [HostController::class, 'showGuest'])->name('host.guest.detail');
 });
 
-/*
-|--------------------------------------------------------------------------
-| 4. OPERATOR ROUTES
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'operator'])->group(function () {
-    
+// OPERATOR
+Route::middleware(['auth', 'role:operator'])->group(function () {
     Route::get('/operator-area', [OperatorController::class, 'index'])->name('operator.dashboard');
 });
 
-/*
-|--------------------------------------------------------------------------
-| AUTH ROUTES
-|--------------------------------------------------------------------------
-*/
+// ADMIN
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/admin-dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::post('/admin/station', [AdminController::class, 'storeStation'])->name('admin.station.store');
+    Route::delete('/admin/station/{id}', [AdminController::class, 'destroyStation'])->name('admin.station.destroy');
+    Route::post('/admin/brand', [AdminController::class, 'storeBrand'])->name('admin.brand.store');
+    Route::post('/admin/type', [AdminController::class, 'storeType'])->name('admin.type.store');
+});
+
 require __DIR__ . '/auth.php';

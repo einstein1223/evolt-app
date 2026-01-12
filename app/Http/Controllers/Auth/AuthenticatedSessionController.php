@@ -14,7 +14,7 @@ use Inertia\Response;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Menampilkan Halaman Login
      */
     public function create(): Response
     {
@@ -25,39 +25,48 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Menangani Proses Login (PENTING DISINI)
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // 1. Validasi Email & Password
         $request->authenticate();
 
+        // 2. Buat Session Baru
         $request->session()->regenerate();
 
-        // Ambil data user yang baru login
+        // 3. Ambil Data User yang Sedang Login
         $user = $request->user();
 
-        // --- LOGIKA PENGALIHAN (TRAFFIC LIGHT) ---
-        
-        // 1. JALUR KHUSUS ADMIN (Hard Redirect)
-        // Kita gunakan ->route() agar MEMAKSA pindah, mengabaikan history 'intended'
-        if ($user->role === 'admin') {
+        // 4. Normalisasi Role (Hapus spasi, huruf kecil semua)
+        // Jaga-jaga kalau di database tertulis "Host " atau "HOST"
+        $role = strtolower(trim($user->role));
+
+        // --- TRAFFIC LIGHT (PENGATUR LALU LINTAS) ---
+
+        // A. JALUR ADMIN -> /admin-dashboard
+        if ($role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
-        // 2. JALUR KHUSUS OPERATOR (Hard Redirect)
-        // Ini memperbaiki masalah Operator nyasar ke Dashboard User
-        if ($user->role === 'operator') {
+        // B. JALUR OPERATOR -> /operator-area
+        if ($role === 'operator') {
             return redirect()->route('operator.dashboard');
         }
 
-        // 3. JALUR UMUM (USER BIASA)
-        // Gunakan intended() agar user dikembalikan ke halaman terakhir yang dia buka (UX bagus)
-        // Jika tidak ada history, default ke 'dashboard'
+        // C. JALUR HOST (MITRA) -> /host-dashboard
+        // Pastikan di database kolom role isinya benar-benar 'host'
+        if ($role === 'host') {
+            return redirect()->route('host.dashboard');
+        }
+
+        // D. JALUR USER BIASA (DEFAULT) -> /dashboard
+        // Jika tidak punya role khusus, lempar ke dashboard user biasa
         return redirect()->intended(route('dashboard'));
     }
 
     /**
-     * Destroy an authenticated session.
+     * Logout
      */
     public function destroy(Request $request): RedirectResponse
     {

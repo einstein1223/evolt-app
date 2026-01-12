@@ -11,19 +11,29 @@ class Booking extends Model
 
     protected $fillable = [
         'user_id',
-        'booking_number',
         'station_name',
         'location',
-        'port_type',
+        'booking_code', // Penting
+        'booking_date',
         'duration',
+        'port_type',
         'total_price',
         'status',
-        'booking_date',
     ];
 
-    // Relasi ke User (Agar bisa dipanggil di Profile)
+    protected $casts = [
+        'booking_date' => 'datetime',
+        'total_price' => 'integer',
+        'duration' => 'integer',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function station()
+    {
+        return $this->belongsTo(Station::class, 'station_name', 'name');
     }
 }

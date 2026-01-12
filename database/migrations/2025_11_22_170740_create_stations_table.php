@@ -7,36 +7,30 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
-        Schema::create('stations', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            
-            $table->string('city')->nullable(); 
-            $table->string('address')->nullable(); 
-            $table->string('operational_hours')->default('24/7'); 
-            
-            $table->decimal('lat', 10, 7);
-            $table->decimal('lng', 10, 7);
-            
-            $table->decimal('price', 10, 2)->default(50000);
-            $table->decimal('service_fee', 10, 2)->default(5000);
-            
-            $table->string('status')->default('Aktif');
-            
-            // JSON for chargers detail
-            $table->json('chargers_detail')->nullable(); 
+{
+    Schema::create('stations', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->constrained()->onDelete('cascade');
+        $table->string('name');
+        $table->string('address');
+        $table->string('city');
+        $table->decimal('lat', 10, 8);
+        $table->decimal('lng', 11, 8);
+        
+        // --- TAMBAHKAN DUA BARIS INI ---
+        $table->string('type')->nullable();          // Contoh isi: 'DC Fast', 'AC Standard'
+        $table->string('location_type')->nullable(); // Contoh isi: 'Mall', 'Perumahan'
+        // -------------------------------
 
-            // --- NEW COLUMNS FOR HOST FEATURE ---
-            // These were missing causing the seeder error
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
-            $table->boolean('is_private')->default(false); 
-            $table->string('contact_person')->nullable(); 
-            // ------------------------------------
-
-            $table->timestamps();
-        });
-    }
+        $table->decimal('price', 10, 2)->default(0);
+        $table->decimal('service_fee', 10, 2)->default(0);
+        $table->string('status')->default('Available');
+        $table->boolean('is_private')->default(false);
+        $table->json('chargers_detail')->nullable();
+        $table->string('photo')->nullable(); // Jika ada dari migration sebelumnya
+        $table->timestamps();
+    });
+}
 
     public function down(): void
     {

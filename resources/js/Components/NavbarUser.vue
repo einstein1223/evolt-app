@@ -30,13 +30,11 @@ onUnmounted(() => {
     isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md py-2' : 'bg-transparent py-4'
   ]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300">
-      <!-- Logo -->
       <Link href="/dashboard" class="text-2xl font-semibold text-[#00C853]">
-        E-<span class="text-gray-900 font-bsemiold">VOLT</span>
+        E-<span class="text-gray-900 font-bold">VOLT</span>
       </Link>
 
-      <!-- Ikon Profil (selalu tampil, responsif) -->
-      <Link href="/user-profile"
+      <Link :href="route('profile.edit')"
         class="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100/50 transition duration-150 focus:outline-none focus:ring-2 focus:ring-[#00C853] group"
         title="Pengaturan Profil">
         <div

@@ -1,275 +1,241 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Navbar from '@/Components/Navbar.vue';
 import Footer from '@/Components/Footer.vue';
+
+const waLink = (message) => `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`;
 </script>
 
 <template>
+    <Head title="Investasi E-VOLT" />
 
-    <Head title="Gabung Mitra" />
-
-    <div class="min-h-screen flex flex-col bg-white font-sans">
+    <div class="min-h-screen flex flex-col bg-white font-sans text-gray-800">
         <Navbar />
 
-        <main class="flex-grow pt-24 pb-12 lg:pt-32">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Header -->
-                <!-- <div class="text-center mb-12">
-                    <h1 class="text-4xl font-bold text-gray-900">Gabung Mitra</h1>
-                    <p class="text-lg text-gray-600 mt-2">Pilih solusi yang tepat untuk Anda</p>
-                </div> -->
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <!-- LEFT COLUMN: Brand Solution -->
-                    <div>
-                        <div class="mb-6 border-b border-lime-200 pb-2">
-                            <h2 class="text-2xl font-bold flex items-center gap-2">
-                                <span class="text-yellow-500 text-3xl">⚡</span>
-                                <span class="text-gray-900">Brand Solution</span>
-                                <span class="text-sm font-normal text-lime-600 ml-2 bg-lime-50 px-2 py-1 rounded">|
-                                    Beli & Operasikan Sendiri</span>
-                            </h2>
-                        </div>
-
-                        <div class="space-y-6">
-                            <!-- Card 1: Hybrid -->
-                            <div class="bg-white border rounded-2xl shadow-sm p-6 relative overflow-hidden">
-                                <div class="border-l-4 border-lime-500 pl-4 mb-4">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h3 class="text-xl font-bold text-gray-900">Hybrid (AC & DC)</h3>
-                                            <span
-                                                class="inline-block bg-lime-100 text-lime-700 text-xs px-2 py-0.5 rounded mt-1 font-semibold">AC
-                                                + DC Power</span>
-                                        </div>
-                                        <div class="text-right">
-                                            <span class="text-lime-600 font-bold text-2xl">Rp</span>
-                                            <span class="text-gray-400 text-sm block">/ set</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p class="text-gray-600 text-sm mb-6">
-                                    Paket kombinasi charger AC dan DC berdaya tinggi untuk kecepatan dan layanan
-                                    maksimal di lokasi premium.
-                                </p>
-
-                                <ul class="space-y-2 mb-6 text-sm text-gray-600">
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Unit DC Fast Charger (50kW - 150kW)
-                                    </li>
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Unit AC Charger (7.4kW - 22kW)
-                                    </li>
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Daya Input: 3 Phase Industrial Grade
-                                    </li>
-                                </ul>
-
-                                <button
-                                    class="w-full bg-[#84cc16] hover:bg-[#65a30d] text-white font-bold py-3 px-4 rounded-xl transition duration-200 flex justify-center items-center gap-2">
-                                    Lihat Detail & Foto Lengkap <span>→</span>
-                                </button>
-                            </div>
-
-                            <!-- Card 2: AC Standard -->
-                            <div class="bg-white border rounded-2xl shadow-sm p-6 relative overflow-hidden">
-                                <div class="border-l-4 border-blue-500 pl-4 mb-4">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h3 class="text-xl font-bold text-gray-900">AC Standard</h3>
-                                            <span
-                                                class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded mt-1 font-semibold">AC
-                                                Only Solution</span>
-                                        </div>
-                                        <div class="text-right">
-                                            <span class="text-lime-600 font-bold text-2xl">Rp</span>
-                                            <span class="text-gray-400 text-sm block">/ set</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p class="text-gray-600 text-sm mb-6">
-                                    Solusi efisien dan hemat biaya untuk lokasi dengan kebutuhan pengisian daya reguler
-                                    dan instalasi sederhana.
-                                </p>
-
-                                <ul class="space-y-2 mb-6 text-sm text-gray-600">
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Unit AC Charger (7.4kW atau 11kW)
-                                    </li>
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Daya Input: 1 Phase atau 3 Phase
-                                    </li>
-                                    <li class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-lime-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                        Konektor: Type 2
-                                    </li>
-                                </ul>
-
-                                <button
-                                    class="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-3 px-4 rounded-xl transition duration-200 flex justify-center items-center gap-2">
-                                    Lihat Detail & Foto Lengkap <span>→</span>
-                                </button>
-                            </div>
-                        </div>
+        <!-- Tambahkan padding-top (pt-24) agar konten tidak tertutup navbar -->
+        <main class="flex-grow pt-24">
+            
+            <!-- 1. WHY INVEST (Langsung Data Pasar) -->
+            <section class="py-12 md:py-20">
+                <div class="max-w-7xl mx-auto px-6">
+                    <div class="text-center mb-12">
+                        <h1 class="text-3xl md:text-5xl font-extrabold text-[#1f2937] leading-tight mb-4">
+                            Peluang Investasi <span class="text-[#00C853]">Energi Masa Depan</span>
+                        </h1>
+                        <p class="text-gray-500 max-w-2xl mx-auto text-lg">
+                            Bergabunglah dengan ekosistem kendaraan listrik yang sedang berkembang pesat di Indonesia.
+                        </p>
                     </div>
 
-                    <!-- RIGHT COLUMN: Mitra Operator -->
-                    <div>
-                        <div class="mb-6 border-b border-red-200 pb-2">
-                            <h2 class="text-2xl font-bold flex items-center gap-2">
-                                <span class="text-orange-500 text-3xl">🤝</span>
-                                <span class="text-gray-900">Mitra Operator</span>
-                                <span class="text-sm font-normal text-red-500 ml-2 bg-red-50 px-2 py-1 rounded">|
-                                    Kemitraan Revenue Share</span>
-                            </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-center divide-y md:divide-y-0 md:divide-x divide-gray-100 bg-gray-50 rounded-3xl p-8 border border-gray-100">
+                        <div class="p-4">
+                            <div class="text-5xl font-black text-[#00C853] mb-2">+45%</div>
+                            <p class="text-lg font-bold text-gray-900">Pertumbuhan EV</p>
+                            <p class="text-sm text-gray-500 mt-2">Lonjakan adopsi kendaraan listrik di Indonesia tiap tahunnya.</p>
                         </div>
-
-                        <div class="space-y-4">
-                            <!-- Card 1: Pengelola Lahan -->
-                            <div
-                                class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition">
-                                <div class="flex items-start gap-3 mb-3">
-                                    <div class="p-2 bg-red-50 rounded-full text-red-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 text-lg">Pengelola Lahan Strategis</h3>
-                                        <p class="text-xs text-gray-500 mt-1">Ideal untuk pemilik properti komersial
-                                            seperti mal, hotel, dan area parkir.</p>
-                                    </div>
-                                </div>
-                                <div class="mt-2 bg-red-50/50 p-3 rounded-lg">
-                                    <p class="text-xs font-bold text-red-500 mb-1">Manfaat Utama:</p>
-                                    <ul class="text-xs text-gray-600 space-y-1">
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Bagi
-                                            hasil pendapatan dari setiap sesi charging</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span>
-                                            Investasi Unit 0% dari sisi mitra</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span>
-                                            Peningkatan nilai properti dan traffic pengunjung</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Card 2: Operator Teknis -->
-                            <div
-                                class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition">
-                                <div class="flex items-start gap-3 mb-3">
-                                    <div class="p-2 bg-red-50 rounded-full text-red-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 text-lg">Operator Teknis Lokal</h3>
-                                        <p class="text-xs text-gray-500 mt-1">Kesempatan bagi perusahaan instalasi
-                                            listrik dan teknis untuk menjalankan O&M di area tertentu.</p>
-                                    </div>
-                                </div>
-                                <div class="mt-2 bg-red-50/50 p-3 rounded-lg">
-                                    <p class="text-xs font-bold text-red-500 mb-1">Manfaat Utama:</p>
-                                    <ul class="text-xs text-gray-600 space-y-1">
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Proyek
-                                            instalasi dan pemeliharaan berkesinambungan</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span>
-                                            Pelatihan bersertifikat Brand EV</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Akses ke
-                                            sistem O&M canggih untuk efisiensi operasional</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Card 3: Investor Charging -->
-                            <div
-                                class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition">
-                                <div class="flex items-start gap-3 mb-3">
-                                    <div class="p-2 bg-red-50 rounded-full text-red-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 text-lg">Investor Charging</h3>
-                                        <p class="text-xs text-gray-500 mt-1">Program investasi yang aman dan transparan
-                                            di sektor EV charging dengan potensi ROI tinggi.</p>
-                                    </div>
-                                </div>
-                                <div class="mt-2 bg-red-50/50 p-3 rounded-lg">
-                                    <p class="text-xs font-bold text-red-500 mb-1">Manfaat Utama:</p>
-                                    <ul class="text-xs text-gray-600 space-y-1">
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Model
-                                            bisnis bagi hasil (Revenue Share) yang kompetitif</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Laporan
-                                            keuangan terintegrasi dan transparan</li>
-                                        <li class="flex items-center gap-1"><span class="text-red-400">⊙</span> Proyeksi
-                                            ROI yang jelas didukung data utilisasi riil</li>
-                                    </ul>
-                                </div>
-                            </div>
+                        <div class="p-4">
+                            <div class="text-5xl font-black text-[#00C853] mb-2">24/7</div>
+                            <p class="text-lg font-bold text-gray-900">Passive Income</p>
+                            <p class="text-sm text-gray-500 mt-2">Mesin bekerja otomatis, uang masuk ke dashboard Anda kapan saja.</p>
                         </div>
-
-                        <div class="mt-6">
-                            <button
-                                class="w-full bg-[#dc2626] hover:bg-[#b91c1c] text-white font-bold py-4 px-6 rounded-xl shadow-lg transition duration-200 transform hover:-translate-y-1 flex justify-center items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                Daftar Jadi Mitra Operator Sekarang!
-                            </button>
-                            <p class="text-center text-xs text-gray-400 mt-2">Proses cepat, siap beroperasi dalam 4-6
-                                minggu.</p>
+                        <div class="p-4">
+                            <div class="text-5xl font-black text-[#00C853] mb-2">0%</div>
+                            <p class="text-lg font-bold text-gray-900">Biaya Franchise</p>
+                            <p class="text-sm text-gray-500 mt-2">Model kemitraan bagi hasil yang adil tanpa biaya royalti di muka.</p>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- 2. PILIHAN JALUR KEMITRAAN -->
+            <section id="paket" class="py-20 bg-white">
+                <div class="max-w-7xl mx-auto px-6">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Pilih Model Investasi</h2>
+                        <p class="text-gray-500 mt-4 text-lg">Sesuaikan dengan jenis properti dan target pasar Anda.</p>
+                    </div>
+
+                    <!-- KUBU 1: MITRA TETANGGA -->
+                    <div class="mb-20">
+                        <div class="flex items-center gap-4 mb-8 border-b border-gray-200 pb-4">
+                            <div class="p-4 bg-gray-100 rounded-2xl text-gray-600 shadow-sm">
+                                <i class="fas fa-home text-3xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900">Mitra Tetangga (Residential)</h3>
+                                <p class="text-gray-500 text-sm">Monetisasi listrik rumah atau ruko kecil untuk komunitas sekitar.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Paket A: Starter Home -->
+                            <div class="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition border border-gray-100 flex flex-col group relative overflow-hidden">
+                                <div class="mb-4 flex justify-between items-start">
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-900">Starter Home</h4>
+                                        <p class="text-sm text-gray-500">Entry level untuk garasi pribadi.</p>
+                                    </div>
+                                    <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold uppercase">Hemat</span>
+                                </div>
+
+                                <!-- Detail Alat -->
+                                <div class="bg-gray-50 p-5 rounded-2xl mb-6">
+                                    <h5 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Spesifikasi Alat</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Unit</span> <span class="font-bold text-gray-900">Smart Socket / Portable</span></div>
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Daya</span> <span class="font-bold text-gray-900">3.5 kW (Slow)</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-600">Target</span> <span class="font-bold text-gray-900">Motor Listrik / City Car</span></div>
+                                    </div>
+                                </div>
+
+                                <ul class="space-y-3 mb-8 text-sm text-gray-600 flex-grow">
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Dashboard Host Mobile</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Manajemen Jadwal Buka/Tutup</li>
+                                </ul>
+
+                                <a :href="waLink('Saya tertarik paket Starter Home (Mitra Tetangga)')" class="w-full py-3 rounded-xl border border-gray-300 text-gray-700 font-bold text-center hover:bg-gray-800 hover:text-white transition">
+                                    Tanya Paket Ini
+                                </a>
+                            </div>
+
+                            <!-- Paket B: Pro Home -->
+                            <div class="bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition border border-gray-100 flex flex-col group relative overflow-hidden">
+                                <div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">REKOMENDASI</div>
+                                <div class="mb-4">
+                                    <h4 class="text-xl font-bold text-gray-900">Pro Home</h4>
+                                    <p class="text-sm text-gray-500">Standar pengisian mobil listrik rumahan.</p>
+                                </div>
+
+                                <!-- Detail Alat -->
+                                <div class="bg-gray-50 p-5 rounded-2xl mb-6">
+                                    <h5 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Spesifikasi Alat</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Unit</span> <span class="font-bold text-gray-900">AC Wallbox (Fixed)</span></div>
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Daya</span> <span class="font-bold text-gray-900">7 kW (Standard)</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-600">Target</span> <span class="font-bold text-gray-900">Semua Mobil EV</span></div>
+                                    </div>
+                                </div>
+
+                                <ul class="space-y-3 mb-8 text-sm text-gray-600 flex-grow">
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> RFID Access Control</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Weatherproof (IP55)</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Support Full Dashboard</li>
+                                </ul>
+
+                                <a :href="waLink('Saya tertarik paket Pro Home (Mitra Tetangga)')" class="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-center hover:bg-gray-800 transition shadow-lg">
+                                    Ambil Paket Ini
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KUBU 2: MITRA OPERATOR -->
+                    <div>
+                        <div class="flex items-center gap-4 mb-8 border-b border-gray-200 pb-4">
+                            <div class="p-4 bg-gray-100 rounded-2xl text-gray-600 shadow-sm">
+                                <i class="fas fa-building text-3xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900">Mitra Operator (Commercial)</h3>
+                                <p class="text-gray-500 text-sm">Investasi skala bisnis untuk lokasi strategis & publik.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Paket C: Commercial Hub -->
+                            <div class="bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition border border-gray-100 flex flex-col group relative overflow-hidden">
+                                <div class="mb-4">
+                                    <h4 class="text-xl font-bold text-gray-900">Commercial Hub</h4>
+                                    <p class="text-sm text-gray-500 mt-1">Untuk Cafe, Hotel, Kantor, atau Apartemen.</p>
+                                </div>
+
+                                <!-- Detail Alat -->
+                                <div class="bg-gray-50 p-5 rounded-2xl mb-6">
+                                    <h5 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Spesifikasi Alat</h5>
+                                    <div class="space-y-2 text-sm text-gray-600">
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Unit</span> <span class="font-bold text-gray-900">AC Floor Stand</span></div>
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Daya</span> <span class="font-bold text-gray-900">22 kW (Dual Gun)</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-600">Fitur</span> <span class="font-bold text-gray-900">OCPP 1.6J, 4G/WiFi</span></div>
+                                    </div>
+                                </div>
+
+                                <ul class="space-y-3 mb-8 text-sm text-gray-600 flex-grow">
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Dashboard Operator Pro</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Manajemen Tarif Fleksibel</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Bisa Melayani 2 Mobil Sekaligus</li>
+                                </ul>
+
+                                <a :href="waLink('Saya tertarik paket Commercial Hub (Operator)')" class="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-center hover:bg-gray-800 transition shadow-lg">
+                                    Hitung ROI Bisnis
+                                </a>
+                            </div>
+
+                            <!-- Paket D: Power Station -->
+                            <div class="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition border border-gray-100 flex flex-col group relative overflow-hidden">
+                                <div class="mb-4">
+                                    <h4 class="text-xl font-bold text-gray-900">Power Station</h4>
+                                    <p class="text-sm text-gray-500 mt-1">Infrastruktur pengisian cepat (Fast Charging).</p>
+                                </div>
+
+                                <!-- Detail Alat -->
+                                <div class="bg-gray-50 p-5 rounded-2xl mb-6">
+                                    <h5 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Spesifikasi Alat</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Unit</span> <span class="font-bold text-gray-900">DC Fast Charger</span></div>
+                                        <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600">Daya</span> <span class="font-bold text-gray-900">50 - 150 kW</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-600">Konektor</span> <span class="font-bold text-gray-900">CCS2 / CHAdeMO</span></div>
+                                    </div>
+                                </div>
+
+                                <ul class="space-y-3 mb-6 text-sm text-gray-600 flex-grow">
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Revenue Share Premium</li>
+                                    <li class="flex gap-3"><i class="fas fa-check text-green-500"></i> Full Maintenance & Support</li>
+                                </ul>
+
+                                <a :href="waLink('Info Paket Fast Charging')" class="mt-auto block w-full py-3.5 rounded-xl border-2 border-gray-900 text-gray-900 font-bold text-center hover:border-gray-600 hover:bg-gray-800 hover:text-white transition">
+                                    Konsultasi Project
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 4. SIMPLE PROCESS -->
+            <section class="py-20 bg-gray-50 border-t border-gray-100">
+                <div class="max-w-5xl mx-auto px-6 text-center">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-12">Langkah Mudah Menjadi Mitra</h2>
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-8 relative">
+                        <!-- Line -->
+                        <div class="hidden md:block absolute top-8 left-20 right-20 h-0.5 bg-gray-200 -z-10"></div>
+
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm w-full md:w-1/3">
+                            <div class="w-12 h-12 bg-lime-100 text-lime-700 rounded-full flex items-center justify-center font-bold text-lg mx-auto mb-4">1</div>
+                            <h4 class="font-bold text-gray-900">Konsultasi</h4>
+                            <p class="text-sm text-gray-500 mt-2">Diskusikan lokasi dan kebutuhan daya listrik Anda dengan tim kami.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm w-full md:w-1/3">
+                            <div class="w-12 h-12 bg-lime-100 text-lime-700 rounded-full flex items-center justify-center font-bold text-lg mx-auto mb-4">2</div>
+                            <h4 class="font-bold text-gray-900">Instalasi</h4>
+                            <p class="text-sm text-gray-500 mt-2">Tim teknis bersertifikat melakukan pemasangan dan integrasi sistem.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm w-full md:w-1/3">
+                            <div class="w-12 h-12 bg-lime-100 text-lime-700 rounded-full flex items-center justify-center font-bold text-lg mx-auto mb-4">3</div>
+                            <h4 class="font-bold text-gray-900">Mulai Cuan</h4>
+                            <p class="text-sm text-gray-500 mt-2">Stasiun aktif di aplikasi E-VOLT, pantau pendapatan secara real-time.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
 
         <Footer />
     </div>
 </template>
+
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+.font-sans { font-family: 'Poppins', sans-serif; }
+</style>

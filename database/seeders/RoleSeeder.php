@@ -29,8 +29,18 @@ class RoleSeeder extends Seeder
             'nomor_plat' => 'OPR-01',
             'nomor_telepon' => '08222222222',
         ]);
+
+        // 3. Akun MITRA HOST (BARU - Agar bisa test route Host)
+        User::create([
+            'username' => 'Mitra Tetangga',
+            'email' => 'host@evolt.com',
+            'password' => Hash::make('password'),
+            'role' => 'host', // Pastikan ini sama dengan pengecekan di controller
+            'nomor_plat' => 'HOST-01',
+            'nomor_telepon' => '08333333333',
+        ]);
         
-        // 3. Akun USER CONTOH (Opsional, biar gak capek register)
+        // 4. Akun USER CONTOH
         User::create([
             'username' => 'Pengguna EV',
             'email' => 'user@evolt.com',

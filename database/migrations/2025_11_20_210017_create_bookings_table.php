@@ -6,29 +6,43 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
+        // Hapus tabel lama jika ada agar bersih
+        Schema::dropIfExists('bookings');
+
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            // Relasi ke user (penting agar muncul di profile)
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             
-            // Data Transaksi
-            $table->string('booking_number'); // Contoh: BK-123
-            $table->string('station_name');   // Contoh: SPKLU Batam Center
-            $table->string('location');       // Contoh: Batam Center
-            $table->string('port_type');      // Contoh: Fast Charging
-            $table->string('duration');       // Contoh: 60 menit
-            $table->decimal('total_price', 15, 2); // Harga
+            // Relasi ke User
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             
-            // Status & Waktu
-            $table->string('status')->default('Selesai'); 
-            $table->dateTime('booking_date');
+            // Kode Booking Unik (Contoh: BKG-ABCD)
+            $table->string('booking_code')->unique()->nullable(); // Nullable dulu untuk jaga-jaga
+            
+            // Info Stasiun (Kita pakai Nama Stasiun sebagai penghubung relasi untuk Host)
+            $table->string('station_name'); 
+            $table->string('location')->nullable();
+            
+            // Detail Booking
+            $table->dateTime('booking_date'); // Waktu mulai cas
+            $table->integer('duration');      // Durasi dalam menit
+            $table->string('port_type')->default('Regular');
+            $table->integer('total_price');
+            
+            // Status: Menunggu, Selesai, Batal
+            $table->string('status')->default('Menunggu');
             
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('bookings');
