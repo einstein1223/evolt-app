@@ -416,7 +416,9 @@ const availablePorts = computed(() => {
         else if (charger.includes('Fast')) portLabel = `⚡ DC CHAdeMO (Fast)`;
         else if (selectedStation.value.is_private) portLabel = `🔌 AC Home (Type 2)`;
         else portLabel = `🔌 AC Type 2 (Regular)`;
-        return { id: `port-${index + 1}`, label: portLabel, value: `port-${index + 1}`, type: charger };
+        
+        // PERBAIKAN DISINI: Value harus tipe chargernya, bukan "port-x"
+        return { id: `port-${index + 1}`, label: portLabel, value: charger, type: charger }; 
     });
 });
 const portOptions = computed(() => availablePorts.value);
@@ -444,37 +446,67 @@ const openPrintStruk = () => {
 const confirmPayment = () => {
     isProcessingPayment.value = true;
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    // Format YYYY-MM-DD HH:mm:00 (Sesuai MySQL)
+    const dateStr = now.getFullYear() + '-' + 
+       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+       String(now.getDate()).padStart(2, '0');
+       
     const fullBookingTime = `${dateStr} ${selectedStartTime.value}:00`;
     
     setTimeout(() => {
-        const durasiStr = selectedStation.value.is_private ? `${selectedDuration.value} Jam` : `${estimatedDurationMinutes.value} menit`;
+        // PERBAIKAN: Kirim Durasi sebagai ANGKA (Integer), bukan String "30 menit"
+        // Backend mengharapkan integer (menit)
+        let durationInMinutes = 0;
+        if (selectedStation.value.is_private) {
+            // Jika private (jam), konversi ke menit
+            durationInMinutes = parseInt(selectedDuration.value) * 60;
+        } else {
+            // Jika SPKLU umum, pakai logic estimasi kamu atau value raw (kWh)
+            // Asumsi backend menerima durasi dalam MENIT:
+            durationInMinutes = estimatedDurationMinutes.value; 
+        }
+
         const bookingData = { 
-            booking_number: selectedStation.value.bookingNumber || 'BK-' + Date.now(), 
+            // booking_number: Tidak perlu dikirim, Backend yang generate
             station_name: selectedStation.value.name, 
             location: selectedStation.value.location || '-', 
-            port_type: selectedPort.value, 
-            duration: durasiStr, 
+            port_type: selectedPort.value, // Sekarang isinya "Fast" / "Regular" (Sesuai DB)
+            duration: durationInMinutes,   // Sekarang isinya angka: 30, 60, dll
             total_price: Number(priceBreakdown.value.total), 
             booking_time: fullBookingTime 
         };
+
         axios.post('/booking', bookingData)
             .then((response) => {
-                const newBookingCode = response.data.data.booking_number;
-                transactionCode.value = newBookingCode;
+                // Backend me-return Redirect (Inertia), tapi Axios akan menerimanya sebagai sukses.
+                // Kita ambil data dari props jika backend mengembalikan JSON, 
+                // atau kita generate dummy transaction code agar UX tetap jalan.
+                
+                transactionCode.value = 'EV-' + Math.floor(Date.now() / 1000);
+                
+                // Refresh data station di map (biar slot berkurang)
                 router.reload({ only: ['dbStations'] });
+                
                 isProcessingPayment.value = false;
                 showQrisPaymentModal.value = false;
+                
+                // Tampilkan Struk
                 showReceiptModal.value = true;
             })
-            .catch((e) => {
-                console.warn("API Error, using fallback success", e);
-                transactionCode.value = 'BK-' + Math.floor(Math.random() * 100000);
+            .catch((error) => {
                 isProcessingPayment.value = false;
-                showQrisPaymentModal.value = false;
-                showReceiptModal.value = true;
+                console.error("Booking Failed:", error);
+                
+                // Tampilkan pesan error validasi dari Backend
+                if (error.response && error.response.status === 422) {
+                    const errors = error.response.data.errors;
+                    const firstError = Object.values(errors)[0][0];
+                    alert("Gagal Booking: " + firstError);
+                } else {
+                    alert("Terjadi kesalahan sistem. Coba lagi.");
+                }
             });
-    }, 2000);
+    }, 1500); // Delay sedikit untuk efek loading
 };
 
 // [FIX] SWIPE DOWN LOGIC

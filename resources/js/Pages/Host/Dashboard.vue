@@ -4,10 +4,11 @@ import { router, usePage, Head, Link } from '@inertiajs/vue3';
 import Footer from '@/Components/Footer.vue';
 
 // --- PROPS & DATA ---
+// Data ini sekarang dikirim dari HostDashboardController
 const props = defineProps({
     station: {
         type: Object,
-        default: () => ({ name: 'Garasi Pak Budi', status: 'Tersedia', id: 'MH-001', is_active: true })
+        default: () => null
     },
     stats: {
         type: Object,
@@ -16,15 +17,20 @@ const props = defineProps({
     recent_guests: {
         type: Array,
         default: () => []
+    },
+    weekly_chart: { // Data grafik dinamis dari database
+        type: Array,
+        default: () => []
     }
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const userNameDisplay = computed(() => user.value.username || user.value.name || 'Mitra');
+const userNameDisplay = computed(() => 'Pak Hasan');
 
 // --- STATE ---
 const showProfileMenu = ref(false);
+// Cek apakah station ada sebelum mengakses statusnya
 const isOpen = ref(props.station ? (props.station.status === 'Tersedia' || props.station.is_open) : false);
 const isToggling = ref(false);
 
@@ -34,33 +40,24 @@ const logout = () => router.post(route('logout'));
 
 const toggleStore = () => {
     if (isToggling.value) return;
+    if (!props.station) return alert("Anda belum mendaftarkan station.");
+
     isToggling.value = true;
     const previousState = isOpen.value;
-    isOpen.value = !isOpen.value; // Optimistic UI update
+    isOpen.value = !isOpen.value; // Optimistic UI update (update tampilan dulu biar cepat)
 
     router.post(route('host.toggle'), { is_open: isOpen.value }, {
         preserveScroll: true,
         onSuccess: () => { isToggling.value = false; },
         onError: () => {
-            isOpen.value = previousState; // Revert if failed
+            isOpen.value = previousState; // Kembalikan status jika server error
             isToggling.value = false;
-            alert("Gagal mengubah status station.");
+            alert("Gagal mengubah status station. Silakan coba lagi.");
         }
     });
 };
 
 const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-
-// Dummy Data Chart
-const weeklyChart = [
-    { day: 'Sen', value: 40, label: '40rb' },
-    { day: 'Sel', value: 25, label: '25rb' },
-    { day: 'Rab', value: 60, label: '60rb' },
-    { day: 'Kam', value: 45, label: '45rb' },
-    { day: 'Jum', value: 85, label: '85rb' },
-    { day: 'Sab', value: 70, label: '70rb' },
-    { day: 'Min', value: 55, label: '55rb' },
-];
 </script>
 
 <template>
@@ -159,10 +156,13 @@ const weeklyChart = [
                                     <div class="p-3 bg-lime-50 text-lime-600 rounded-2xl group-hover:bg-[#CCFF00] group-hover:text-slate-900 transition">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
-                                    <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">+{{ props.stats.growth }}%</span>
+                                    <span class="text-xs font-bold px-2 py-1 rounded-lg"
+                                        :class="props.stats.growth >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'">
+                                        {{ props.stats.growth >= 0 ? '+' : '' }}{{ props.stats.growth }}%
+                                    </span>
                                 </div>
                                 <p class="text-slate-500 text-sm font-medium">Total Pendapatan</p>
-                                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ formatRupiah(stats.total_revenue) }}</h3>
+                                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ formatRupiah(props.stats.total_revenue) }}</h3>
                             </div>
                             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition group">
                                 <div class="flex justify-between items-start mb-4">
@@ -171,7 +171,7 @@ const weeklyChart = [
                                     </div>
                                 </div>
                                 <p class="text-slate-500 text-sm font-medium">Pendapatan Bulan Ini</p>
-                                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ formatRupiah(stats.month_revenue) }}</h3>
+                                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ formatRupiah(props.stats.month_revenue) }}</h3>
                             </div>
                         </div>
 
@@ -179,18 +179,14 @@ const weeklyChart = [
                             <div class="flex justify-between items-center mb-8">
                                 <div>
                                     <h3 class="font-bold text-lg text-slate-900">Performa Mingguan</h3>
-                                    <p class="text-sm text-slate-500">Jumlah kWh yang tersalurkan</p>
+                                    <p class="text-sm text-slate-500">Pendapatan 7 hari terakhir</p>
                                 </div>
-                                <select class="text-sm border-gray-200 rounded-lg focus:ring-lime-500 focus:border-lime-500 text-slate-600">
-                                    <option>7 Hari Terakhir</option>
-                                    <option>Bulan Ini</option>
-                                </select>
                             </div>
 
                             <div class="flex items-end justify-between h-48 gap-3 sm:gap-4">
-                                <div v-for="(item, index) in weeklyChart" :key="index" class="flex flex-col items-center flex-1 h-full justify-end group cursor-pointer">
-                                    <div class="mb-2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0 text-[10px] font-bold bg-slate-800 text-white py-1 px-2 rounded pointer-events-none">
-                                        {{ item.label }}
+                                <div v-for="(item, index) in props.weekly_chart" :key="index" class="flex flex-col items-center flex-1 h-full justify-end group cursor-pointer">
+                                    <div class="mb-2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0 text-[10px] font-bold bg-slate-800 text-white py-1 px-2 rounded pointer-events-none z-10 whitespace-nowrap">
+                                        {{ formatRupiah(item.raw_value) }}
                                     </div>
                                     <div class="w-full bg-slate-100 rounded-t-xl relative overflow-hidden h-full flex items-end">
                                         <div class="w-full bg-lime-400 rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-lime-500 relative"
@@ -212,9 +208,9 @@ const weeklyChart = [
                             </div>
 
                             <div class="flex-grow space-y-4 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
-                                <div v-if="recent_guests.length > 0">
+                                <div v-if="props.recent_guests.length > 0">
                                     <Link
-                                        v-for="(guest, index) in recent_guests"
+                                        v-for="(guest, index) in props.recent_guests"
                                         :key="index"
                                         :href="guest.user_id ? route('host.guest.detail', guest.user_id) : '#'"
                                         class="group flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition border border-transparent hover:border-lime-200 cursor-pointer"

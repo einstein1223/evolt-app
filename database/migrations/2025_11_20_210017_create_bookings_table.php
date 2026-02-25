@@ -6,43 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        // Hapus tabel lama jika ada agar bersih
-        Schema::dropIfExists('bookings');
+    // database/migrations/xxxx_create_bookings_table.php
+public function up(): void {
+    Schema::dropIfExists('bookings');
+    Schema::create('bookings', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        $table->string('plate_number')->nullable(); 
+        $table->foreignId('station_id')->constrained('stations')->cascadeOnDelete();
+        $table->string('booking_code')->unique();
+        $table->string('station_name'); 
+        $table->string('location')->nullable();
+        $table->dateTime('booking_date');
+        $table->dateTime('end_time')->nullable(); 
+        $table->integer('duration'); 
+        $table->string('port_type')->default('Regular');
+        $table->decimal('total_price', 12, 2);
+        $table->string('status')->default('Booked'); 
+        $table->timestamps();
+    });
+}
 
-        Schema::create('bookings', function (Blueprint $table) {
-            $table->id();
-            
-            // Relasi ke User
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            
-            // Kode Booking Unik (Contoh: BKG-ABCD)
-            $table->string('booking_code')->unique()->nullable(); // Nullable dulu untuk jaga-jaga
-            
-            // Info Stasiun (Kita pakai Nama Stasiun sebagai penghubung relasi untuk Host)
-            $table->string('station_name'); 
-            $table->string('location')->nullable();
-            
-            // Detail Booking
-            $table->dateTime('booking_date'); // Waktu mulai cas
-            $table->integer('duration');      // Durasi dalam menit
-            $table->string('port_type')->default('Regular');
-            $table->integer('total_price');
-            
-            // Status: Menunggu, Selesai, Batal
-            $table->string('status')->default('Menunggu');
-            
-            $table->timestamps();
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bookings');

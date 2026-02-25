@@ -15,20 +15,30 @@ class OperatorController extends Controller
     {
         // --- 1. STATISTIK ATAS ---
         $totalStations = Station::count();
+        $activeStations = Station::whereIn('status', ['Tersedia', 'Aktif'])->count();
         
-        // Hitung stasiun aktif
-        $activeStations = Station::where('status', 'Tersedia')->orWhere('status', 'Aktif')->count();
-        
-        // Hitung booking bulan ini
         $currentMonthBookings = Booking::whereMonth('created_at', Carbon::now()->month)
                                        ->whereYear('created_at', Carbon::now()->year);
         $totalSessionsMonth = $currentMonthBookings->count();
-        
-        // Total User
         $totalUsers = User::where('role', 'user')->count();
 
-        // --- 2. TABEL LAPORAN OPERATOR MINGGUAN (SAMA DENGAN ADMIN) ---
-        // Mengelompokkan booking berdasarkan stasiun untuk melihat performa/pendapatan
+        // --- 2. DATA ANTREAN REALTIME (TAMBAHKAN INI) ---
+        // Mengambil booking yang statusnya 'Booked' atau 'Pengisian' untuk hari ini
+        $queues = Booking::whereIn('status', ['Booked', 'Pengisian', 'Menunggu'])
+            ->whereDate('booking_date', Carbon::today())
+            ->orderBy('booking_date', 'asc')
+            ->get()
+            ->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'stationName' => $q->station_name,
+                    'plateNumber' => $q->plate_number ?? 'BP ----', // Mengambil kolom plate_number
+                    'entryTime' => Carbon::parse($q->booking_date)->format('H:i'),
+                    'status' => $q->status,
+                ];
+            });
+
+        // --- 3. TABEL LAPORAN OPERATOR MINGGUAN ---
         $stations = Station::all();
         $operatorReports = [];
         $reportId = 1;
@@ -57,7 +67,7 @@ class OperatorController extends Controller
             }
         }
 
-        // --- 3. TABEL PENGGUNA TERDAFTAR ---
+        // --- 4. TABEL PENGGUNA TERDAFTAR ---
         $users = User::where('role', 'user')->latest()->get()->map(function($u) {
             $lastBooking = Booking::where('user_id', $u->id)->latest()->first();
             return [
@@ -78,7 +88,8 @@ class OperatorController extends Controller
                 'totalUsers' => $totalUsers,
             ],
             'stations' => $stations, 
-            'dbOperatorReports' => $operatorReports, // Data Laporan yang sudah di-aggregasi
+            'dbQueues' => $queues, // <--- SEKARANG DATA ANTREAN DIKIRIM KE VUE
+            'dbOperatorReports' => $operatorReports,
             'dbUserReports' => $users
         ]);
     }

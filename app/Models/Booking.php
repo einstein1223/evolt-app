@@ -11,10 +11,13 @@ class Booking extends Model
 
     protected $fillable = [
         'user_id',
+        'plate_number',
+        'station_id',     // <--- Wajib ada
         'station_name',
+        'booking_code',
         'location',
-        'booking_code', // Penting
         'booking_date',
+        'end_time',       // <--- Wajib ada (karena kita pakai di controller)
         'duration',
         'port_type',
         'total_price',
@@ -32,8 +35,12 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    // UPDATE RELASI JUGA (Saran Terbaik)
+    // Sebaiknya relasi menggunakan ID, bukan Nama.
+    // Karena Nama bisa diubah, tapi ID itu permanen.
     public function station()
     {
-        return $this->belongsTo(Station::class, 'station_name', 'name');
+        // Default Laravel mencari 'station_id' di tabel bookings
+        return $this->belongsTo(Station::class); 
     }
 }

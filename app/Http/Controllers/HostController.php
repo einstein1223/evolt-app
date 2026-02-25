@@ -2,173 +2,185 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\Station;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Station;
-use App\Models\Booking;
-use App\Models\User; // Tambahkan import User
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class HostController extends Controller
 {
-    /**
-     * Menampilkan Dashboard Khusus Host
-     */
     public function index()
     {
-        $user = Auth::user();
+        $user = auth()->user();
         
-        // 1. Ambil data stasiun milik user ini
-        $myStation = Station::where('user_id', $user->id)->first();
+        // 1. Ambil Station milik Host
+        $station = Station::where('user_id', $user->id)->first();
 
-        // 2. JIKA DATA KOSONG (User belum daftar jadi host)
-        if (!$myStation) {
+        if (!$station) {
             return Inertia::render('Host/Dashboard', [
                 'station' => null,
                 'stats' => ['total_revenue' => 0, 'month_revenue' => 0, 'growth' => 0],
-                'recent_guests' => []
+                'recent_guests' => [],
+                'weekly_chart' => []
             ]);
         }
 
-        // 3. AMBIL DATA BOOKING
-        $bookings = Booking::with('user')
-                           ->where('station_name', $myStation->name)
-                           ->latest()
-                           ->get();
-        
-        // --- LOGIKA STATISTIK ---
-        $finishedBookings = $bookings->where('status', 'Selesai');
-        
-        // Total Pendapatan
-        $totalRevenue = $finishedBookings->sum('total_price');
-        
-        // Pendapatan Bulan Ini
-        $thisMonthRevenue = $finishedBookings
-            ->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+        // --- PERBAIKAN 1: Gunakan station_id (Lebih Akurat daripada Nama) ---
+        $stationId = $station->id;
+
+        // --- PERBAIKAN 2: Masukkan status 'Booked' agar terhitung ---
+        // Kita hitung status 'Booked' (sudah bayar tapi belum cas) dan 'Selesai'
+        $validStatuses = ['Booked', 'Selesai']; 
+
+        // 2. Calculate Total Revenue
+        $totalRevenue = Booking::where('station_id', $stationId)
+            ->whereIn('status', $validStatuses) // Pakai whereIn untuk banyak status
             ->sum('total_price');
 
-        // Pendapatan Bulan Lalu (Untuk hitung Growth %)
-        $lastMonthRevenue = $finishedBookings
-            ->whereBetween('created_at', [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth()])
+        // 3. Calculate Monthly Revenue
+        $currentMonthRevenue = Booking::where('station_id', $stationId)
+            ->whereIn('status', $validStatuses)
+            ->whereMonth('booking_date', Carbon::now()->month)
+            ->whereYear('booking_date', Carbon::now()->year)
             ->sum('total_price');
 
-        // Hitung Growth (Kenaikan %)
-        $growth = 0;
+        // 4. Calculate Growth
+        $lastMonthRevenue = Booking::where('station_id', $stationId)
+            ->whereIn('status', $validStatuses)
+            ->whereMonth('booking_date', Carbon::now()->subMonth()->month)
+            ->whereYear('booking_date', Carbon::now()->subMonth()->year)
+            ->sum('total_price');
+
         if ($lastMonthRevenue > 0) {
-            $growth = (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100;
-        } else if ($thisMonthRevenue > 0) {
-            $growth = 100;
+            $growth = round((($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100);
+        } else {
+            $growth = $currentMonthRevenue > 0 ? 100 : 0;
         }
 
-        // --- MAPPING DATA TAMU ---
-        $recentGuests = $bookings->take(10)->map(function($b) {
-            $user = $b->user;
+        // 5. Recent Guests Data (Daftar Tamu Terbaru)
+        // Disini kita TIDAK filter status, agar status 'Batal' pun terlihat di list (opsional)
+        // atau gunakan whereIn jika ingin menyembunyikan yg batal.
+        $recentGuests = Booking::with('user')
+            ->where('station_id', $stationId) // Ubah ke ID
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'user_id' => $booking->user_id,
+                    'guest_name' => $booking->user->name ?? 'Pengguna',
+                    'car' => 'Kendaraan Listrik',
+                    'plat' => $booking->booking_code ?? '-', 
+                    'amount' => $booking->total_price,
+                    // Status perlu ditampilkan di frontend agar host tau ini baru Booked
+                    'status' => $booking->status, 
+                    'date' => Carbon::parse($booking->booking_date)->diffForHumans(),
+                ];
+            });
+
+        // 6. Weekly Chart Data
+        $weeklyChart = [];
+        $maxRevenue = 0;
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
             
-            // Nama Tamu
-            $guestName = $user ? ($user->username ?? $user->name) : 'Tamu (Dihapus)';
+            $dailySum = Booking::where('station_id', $stationId)
+                ->whereIn('status', $validStatuses) // Hitung booked & selesai
+                ->whereDate('booking_date', $date->format('Y-m-d'))
+                ->sum('total_price');
+            
+            if ($dailySum > $maxRevenue) $maxRevenue = $dailySum;
 
-            // Data Mobil
-            $carName = 'Kendaraan Listrik';
-            $platNumber = '-';
-
-            if ($user) {
-                if (!empty($user->car_brand)) {
-                    $carName = $user->car_brand . ' ' . ($user->car_series ?? '');
-                }
-                $platNumber = $user->nomor_plat ?? '-';
-            }
-
-            return [
-                'id' => $b->id,
-                'user_id' => $b->user_id, // <--- PENTING: ID User untuk link detail
-                'guest_name' => $guestName, 
-                'car' => $carName,
-                'plat' => $platNumber, 
-                'date' => Carbon::parse($b->created_at)->locale('id')->diffForHumans(),
-                'amount' => $b->total_price,
-                'status' => $b->status
+            $weeklyChart[] = [
+                'day' => $date->locale('id')->isoFormat('ddd'), 
+                'raw_value' => (int) $dailySum,
+                'label' => ($dailySum / 1000) . 'rb'
             ];
-        });
+        }
 
-        // 4. RENDER VUE
+        $finalChart = array_map(function($item) use ($maxRevenue) {
+            $percentage = $maxRevenue > 0 ? ($item['raw_value'] / $maxRevenue) * 100 : 0;
+            return array_merge($item, ['value' => $percentage]);
+        }, $weeklyChart);
+
         return Inertia::render('Host/Dashboard', [
-            'station' => $myStation,
+            'station' => $station,
             'stats' => [
                 'total_revenue' => $totalRevenue,
-                'month_revenue' => $thisMonthRevenue,
-                'growth' => round($growth, 1)
+                'month_revenue' => $currentMonthRevenue,
+                'growth' => $growth
             ],
-            'recent_guests' => $recentGuests
+            'recent_guests' => $recentGuests,
+            'weekly_chart' => $finalChart,
         ]);
     }
 
-    /**
-     * Menampilkan Detail Tamu & Riwayat Transaksi di Station Ini
-     * (Method Baru untuk CRM Sederhana)
-     */
-    public function showGuest($userId)
-    {
-        // 1. Ambil Data Station Milik Host (Security Check)
-        $myStation = Station::where('user_id', Auth::id())->firstOrFail();
-        
-        // 2. Ambil Data Tamu
-        $guest = User::findOrFail($userId);
-
-        // 3. Ambil Riwayat Booking Tamu INI di Station INI saja
-        $history = Booking::where('user_id', $userId)
-                          ->where('station_name', $myStation->name)
-                          ->latest()
-                          ->get()
-                          ->map(function($b) {
-                              return [
-                                  'id' => $b->id,
-                                  'date' => Carbon::parse($b->created_at)->format('d M Y, H:i'),
-                                  'duration' => $b->duration . ' Menit',
-                                  'amount' => $b->total_price,
-                                  'status' => $b->status,
-                                  'port_type' => $b->port_type ?? 'Type 2'
-                              ];
-                          });
-
-        // 4. Hitung Statistik Tamu Ini
-        $totalSpent = $history->where('status', 'Selesai')->sum('amount');
-        $totalVisits = $history->count();
-
-        return Inertia::render('Host/GuestDetail', [
-            'guest' => [
-                'name' => $guest->name,
-                'email' => $guest->email,
-                'phone' => $guest->nomor_telepon ?? '-',
-                'car' => ($guest->car_brand ?? '-') . ' ' . ($guest->car_series ?? ''),
-                'plat' => $guest->nomor_plat ?? '-',
-                'join_date' => Carbon::parse($guest->created_at)->format('d M Y'),
-                'avatar_letter' => strtoupper(substr($guest->name, 0, 1)),
-            ],
-            'history' => $history,
-            'stats' => [
-                'total_visits' => $totalVisits,
-                'total_spent' => $totalSpent
-            ]
-        ]);
-    }
-
-    /**
-     * Toggle Buka/Tutup (Sinkronisasi Database)
-     */
+    // Toggle Status Method
     public function toggleStatus(Request $request)
     {
         $request->validate([
             'is_open' => 'required|boolean'
         ]);
 
-        $station = Station::where('user_id', Auth::id())->firstOrFail();
-        
-        $station->update([
-            'is_open' => $request->is_open,
-            'status'  => $request->is_open ? 'Tersedia' : 'Tutup'
-        ]);
+        $user = auth()->user();
+        $station = Station::where('user_id', $user->id)->first();
+
+        if ($station) {
+            $station->update([
+                'is_open' => $request->is_open,
+                'status' => $request->is_open ? 'Tersedia' : 'Tutup'
+            ]);
+        }
 
         return back();
+    }
+
+    // Show Guest Details Method
+    public function showGuest($id)
+    {
+        $user = auth()->user();
+        $station = Station::where('user_id', $user->id)->first();
+
+        if (!$station) {
+            return redirect()->route('host.dashboard');
+        }
+
+        $guest = User::findOrFail($id);
+
+        // Ubah pencarian pakai station_id agar konsisten
+        $bookingsQuery = Booking::where('station_id', $station->id)
+            ->where('user_id', $id);
+
+        // Statistics (Hitung Booked + Selesai sebagai total spent)
+        $totalSpent = (clone $bookingsQuery)->whereIn('status', ['Booked', 'Selesai'])->sum('total_price');
+        $totalVisits = (clone $bookingsQuery)->count();
+        $lastVisitDate = (clone $bookingsQuery)->latest('booking_date')->value('booking_date');
+
+        $history = $bookingsQuery->orderBy('booking_date', 'desc')
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'booking_code' => $booking->booking_code,
+                    'date' => Carbon::parse($booking->booking_date)->format('d M Y, H:i'),
+                    'amount' => $booking->total_price,
+                    'status' => $booking->status,
+                    'duration' => $booking->duration . ' Menit'
+                ];
+            });
+
+        return Inertia::render('Host/GuestDetail', [
+            'guest' => $guest,
+            'history' => $history,
+            'stats' => [
+                'total_spent' => $totalSpent,
+                'total_visits' => $totalVisits,
+                'last_visit' => $lastVisitDate ? Carbon::parse($lastVisitDate)->diffForHumans() : 'Belum pernah',
+            ]
+        ]);
     }
 }
