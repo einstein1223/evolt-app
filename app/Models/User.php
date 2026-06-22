@@ -16,20 +16,19 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+   protected $fillable = [
         'username',
-        'name',
+        // 'name' sudah dihapus
         'email',
         'password',
         'nomor_telepon',
-        'role', // PENTING: Agar input role dari Seeder bisa masuk ke DB
+        'role', 
         
         // --- DATA KENDARAAN ---
         'nomor_plat',
         'car_brand',
         'car_series',
         'car_type',
-        // ----------------------
         
         // Data Opsional Lainnya
         'gender',

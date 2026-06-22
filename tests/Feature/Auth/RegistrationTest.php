@@ -16,16 +16,24 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_new_users_can_register(): void
+   public function test_new_users_can_register(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Test User',
+            'username' => 'testuser123',
+            'nomor_telepon' => '081234567890',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            // Gunakan kata sandi yang kuat di sini:
+            'password' => 'PasswordKuat123!',
+            'password_confirmation' => 'PasswordKuat123!',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+       $this->assertGuest();
+        
+        // 3. Ubah ini: Pastikan sistem mengarahkan user ke halaman login (sesuaikan rutenya jika berbeda)
+        $response->assertRedirect('/login'); 
+        
+        // (Opsional) Memastikan session membawa pesan sukses Anda
+        $response->assertSessionHas('message', 'Registrasi Berhasil! Silakan Login.');
+    
     }
 }

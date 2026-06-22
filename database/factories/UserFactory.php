@@ -24,12 +24,19 @@ class UserFactory extends Factory
     public function definition(): array
     {
        return [
-    'name' => $this->faker->name(),
-    'email' => $this->faker->unique()->safeEmail(),
-    'email_verified_at' => now(),
-    'password' => bcrypt('password'),
-    'role' => 'user', // 👈 tambahkan baris ini
-    'remember_token' => Str::random(10),
+   // Ganti 'name' menjadi 'username'
+            'username' => fake()->userName(), 
+            
+            // Tambahkan data untuk nomor telepon agar tidak error jika kolom ini wajib diisi
+            'nomor_telepon' => fake()->numerify('08##########'), 
+            
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => static::$password ??= Hash::make('password'),
+            'remember_token' => Str::random(10),
+            
+            // Berdasarkan log error Anda, sepertinya Anda juga memiliki kolom 'role'
+            'role' => 'user',
 ];
 
     }
