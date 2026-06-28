@@ -26,8 +26,8 @@ cd evolt-app
    cp .env.example .env
    ```
 2. Edit file `.env` (misal menggunakan `nano .env`):
-   * Ubah `APP_ENV=production` dan `APP_DEBUG=false`.
-   * Atur `APP_URL=http://domain_anda.com` (atau IP VPS Anda).
+   * Ubah `APP_ENV=production` and `APP_DEBUG=false`.
+   * Atur `APP_URL=https://evolt.my.id`.
    * **Database:** Hubungkan ke MySQL VPS Anda. Karena kita akan menggunakan mode `--network host`, atur host ke `127.0.0.1`:
      ```env
      DB_CONNECTION=mysql
@@ -87,7 +87,7 @@ Sekarang hubungkan Nginx di VPS Anda dengan Nginx di dalam container (yang berja
    ```nginx
    server {
        listen 80;
-       server_name domain_anda.com; # Ganti dengan domain atau IP VPS Anda
+       server_name evolt.my.id www.evolt.my.id;
 
        location / {
            proxy_pass http://127.0.0.1:8080;
@@ -112,7 +112,7 @@ Karena Nginx berjalan langsung di VPS Host, Anda bisa menggunakan **Certbot** un
 
 ```bash
 sudo apt update && sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d domain_anda.com
+sudo certbot --nginx -d evolt.my.id -d www.evolt.my.id
 ```
 Certbot akan mendeteksi block server Anda, mendaftarkan sertifikat SSL, dan otomatis mengalihkan semua traffic HTTP (port 80) ke HTTPS (port 443).
 
