@@ -5,16 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Station; // <-- WAJIB TAMBAHKAN INI
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-
-        // --- PERBAIKAN DI SINI ---
-        // Kita hapus "|| $user->hasRole(...)" karena itu penyebab errornya.
-        // Kita hanya cek kolom 'role' di database.
 
         // 1. Cek Apakah User adalah HOST?
         if ($user->role === 'host') { 
@@ -32,8 +29,11 @@ class DashboardController extends Controller
         }
 
         // 4. JIKA USER BIASA
-       return Inertia::render('user/UserDashboard', [ 
-            'stations' => [] 
+        // Ambil semua data stasiun dari database
+        $stations = Station::all(); 
+
+        return Inertia::render('user/UserDashboard', [ 
+            'stations' => $stations // <-- KIRIM DATANYA KE VUE DI SINI
         ]);
     }
 }

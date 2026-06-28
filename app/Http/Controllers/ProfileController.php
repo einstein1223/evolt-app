@@ -10,17 +10,26 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
 use App\Models\User;
+use App\Models\Booking;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    /**
+     * Tampilkan halaman profil + riwayat booking user
+     */
     public function edit(Request $request): Response
     {
+        // Ambil semua booking milik user yang sedang login, urutkan terbaru
+        $bookings = Booking::where('user_id', Auth::id())
+                        ->orderBy('booking_date', 'desc')
+                        ->get();
+
         return Inertia::render('user/UserProfile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
-            'orders' => $request->user()->bookings,
+            'status'          => session('status'),
+            'bookings'        => $bookings, // <-- kirim sebagai 'bookings'
         ]);
     }
 
@@ -30,62 +39,54 @@ class ProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         // 1. Validasi Input
-        // Kita tambahkan validasi untuk input nama dari Vue ('brand', 'series', dll)
         $request->validate([
-            'username' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
-            
-            // Input dari Vue (UserDashboard)
-            'brand' => ['nullable', 'string', 'max:50'],
-            'series' => ['nullable', 'string', 'max:50'],
-            'variant' => ['nullable', 'string', 'max:50'],
-            
-            // Input Standar DB
-            'nomor_plat' => ['nullable', 'string', 'max:20'],
-            'car_brand' => ['nullable', 'string', 'max:50'],
-            
-            'nomor_telepon' => ['nullable', 'string', 'max:15'],
-            'city' => ['nullable', 'string'],
+            'username'         => ['sometimes', 'string', 'max:255'],
+            'email'            => ['sometimes', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
+            'brand'            => ['nullable', 'string', 'max:50'],
+            'series'           => ['nullable', 'string', 'max:50'],
+            'variant'          => ['nullable', 'string', 'max:50'],
+            'battery_capacity' => ['nullable', 'numeric'],
+            'max_range'        => ['nullable', 'numeric'],
+            'nomor_plat'       => ['nullable', 'string', 'max:20'],
+            'car_brand'        => ['nullable', 'string', 'max:50'],
+            'nomor_telepon'    => ['nullable', 'string', 'max:15'],
+            'city'             => ['nullable', 'string'],
+            'gender'           => ['nullable', 'string'],
+            'birthDate'        => ['nullable', 'string'],
         ]);
 
         $user = $request->user();
 
-        // 2. Isi Data Standar (Username, Email, dll)
-        // fill() hanya akan mengisi jika nama input == nama kolom database
+        // 2. Isi data standar
         $user->fill($request->only([
-            'username', 'email', 'nomor_plat', 'nomor_telepon', 'city', 'gender', 'birthDate'
+            'username', 'email', 'nomor_plat', 'nomor_telepon',
+            'city', 'gender', 'birthDate', 'battery_capacity', 'max_range'
         ]));
 
-        // 3. --- MAPPING MANUAL (PENTING) ---
-        // Karena nama input di Vue beda dengan di DB, kita pasangkan manual di sini.
-        
-        // Vue kirim 'brand' -> Masuk ke DB 'car_brand'
+        // 3. Mapping manual field kendaraan (dari UserDashboard maupun UserProfile)
         if ($request->has('brand')) {
             $user->car_brand = $request->input('brand');
         } elseif ($request->has('car_brand')) {
             $user->car_brand = $request->input('car_brand');
         }
 
-        // Vue kirim 'series' -> Masuk ke DB 'car_series'
         if ($request->has('series')) {
             $user->car_series = $request->input('series');
         } elseif ($request->has('car_series')) {
             $user->car_series = $request->input('car_series');
         }
 
-        // Vue kirim 'variant' -> Masuk ke DB 'car_type'
         if ($request->has('variant')) {
             $user->car_type = $request->input('variant');
         } elseif ($request->has('car_type')) {
             $user->car_type = $request->input('car_type');
         }
-        
-        // Khusus nomor plat (Vue UserDashboard sudah transform jadi 'nomor_plat', tapi jaga-jaga)
+
         if ($request->has('plateNumber')) {
             $user->nomor_plat = $request->input('plateNumber');
         }
 
-        // 4. Reset Email Verification jika email ganti
+        // 4. Reset verifikasi email jika email diubah
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
@@ -96,16 +97,17 @@ class ProfileController extends Controller
         return Redirect::back()->with('message', 'Profil berhasil diperbarui!');
     }
 
+    /**
+     * Hapus akun user
+     */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validate([
+        $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
-
         Auth::logout();
-
         $user->delete();
 
         $request->session()->invalidate();

@@ -17,7 +17,8 @@ class Booking extends Model
         'booking_code',
         'location',
         'booking_date',
-        'end_time',       // <--- Wajib ada (karena kita pakai di controller)
+        'end_time', 
+        'booking_slot',       // <--- Wajib ada (karena kita pakai di controller)
         'duration',
         'port_type',
         'total_price',

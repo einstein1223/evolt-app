@@ -1,19 +1,19 @@
 <template>
   <div class="register-page">
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-      <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[#CCFF00]/20 rounded-full blur-[100px]"></div>
+      <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-[#00C853]/20 rounded-full blur-[100px]"></div>
       <div class="absolute bottom-[10%] -right-[10%] w-[30%] h-[30%] bg-slate-900/10 rounded-full blur-[80px]"></div>
     </div>
 
     <main class="register-container">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-black text-slate-900 tracking-tight">
-          <span class="text-[#84cc16]">E</span>-VOLT
+          <span class="text-[#00C853]">E</span>-VOLT
         </h1>
         <p class="text-slate-500 text-sm mt-2">Bergabung dengan Revolusi Energi</p>
       </div>
 
-      <form @submit.prevent="initiateRegister" class="space-y-5">
+      <form @submit.prevent="submitRegister" class="space-y-5">
         
         <div class="space-y-1.5">
           <label for="username" class="block text-sm font-semibold text-slate-700">Username</label>
@@ -34,7 +34,6 @@
           <input type="tel" id="nomor_telepon" v-model="form.nomor_telepon" placeholder="62812..." required
             class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#84cc16] focus:ring-4 focus:ring-[#84cc16]/20 outline-none transition-all text-slate-800 placeholder-slate-400 font-medium">
           <div v-if="form.errors.nomor_telepon" class="text-xs text-red-600 mt-1">{{ form.errors.nomor_telepon }}</div>
-          <p class="text-[10px] text-slate-400">Pastikan nomor terdaftar di WhatsApp.</p>
         </div>
 
         <div class="space-y-1.5">
@@ -63,9 +62,9 @@
           </label>
         </div>
 
-        <button type="submit" :disabled="isSendingOtp || form.processing"
+        <button type="submit" :disabled="form.processing"
           class="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2">
-          <span v-if="isSendingOtp">Mengirim OTP...</span>
+          <span v-if="form.processing">Mendaftar...</span>
           <span v-else>Daftar Sekarang</span>
         </button>
 
@@ -75,24 +74,12 @@
         <p class="text-slate-500 text-sm">Sudah punya akun? <Link :href="route('login')" class="font-bold text-slate-900 hover:text-[#84cc16] transition-colors ml-1">Login di sini</Link></p>
       </div>
     </main>
-
-    <ModalOtp 
-        :show="showOtpModal" 
-        :phoneNumber="form.nomor_telepon"
-        :isLoading="isVerifyingOtp"
-        @close="showOtpModal = false"
-        @verify="verifyOtp"
-        @resend="sendOtp"
-    />
-
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { useForm, Link, router } from '@inertiajs/vue3';
-import axios from 'axios';
-import ModalOtp from '@/Components/ModalOtp.vue';
+import { useForm, Link } from '@inertiajs/vue3';
 
 const form = useForm({
   username: '',
@@ -104,75 +91,19 @@ const form = useForm({
 });
 
 const showPassword = ref(false);
-const showOtpModal = ref(false);
-const isSendingOtp = ref(false);
-const isVerifyingOtp = ref(false);
-const serverOtp = ref(null); 
 
-const initiateRegister = async () => {
+const submitRegister = () => {
   if (!form.terms) {
     alert('Harap setujui Syarat & Ketentuan');
     return;
   }
 
-  if(!form.username || !form.email || !form.nomor_telepon || !form.password) {
-      alert("Mohon lengkapi semua data");
-      return;
-  }
-
-  isSendingOtp.value = true;
-
-  try {
-    const response = await axios.post('/api/otp/send', { 
-        nomor_telepon: form.nomor_telepon 
-    });
-
-    if (response.data.status === 'success') {
-        console.log("DEV ONLY OTP:", response.data.dev_otp); 
-        serverOtp.value = response.data.dev_otp; 
-        showOtpModal.value = true;
-    } else {
-        alert('Gagal mengirim OTP: ' + response.data.message);
+  // Inertia.js langsung memproses registrasi ke controller backend
+  form.post(route('register'), {
+    onFinish: () => {
+      form.reset('password', 'password_confirmation');
     }
-  } catch (error) {
-    console.error(error);
-    alert('Terjadi kesalahan saat mengirim OTP. Pastikan nomor benar.');
-  } finally {
-    isSendingOtp.value = false;
-  }
-};
-
-const sendOtp = () => {
-    initiateRegister();
-};
-
-const verifyOtp = async (inputCode) => {
-    isVerifyingOtp.value = true;
-
-    try {
-        if (inputCode == serverOtp.value || inputCode == '1234') { 
-             form.post(route('register'), {
-                onFinish: () => {
-                    form.reset('password', 'password_confirmation');
-                    isVerifyingOtp.value = false;
-                },
-                onSuccess: () => {
-                    showOtpModal.value = false;
-                },
-                onError: () => {
-                    isVerifyingOtp.value = false;
-                    showOtpModal.value = false; 
-                }
-             });
-        } else {
-            alert("Kode OTP Salah!");
-            isVerifyingOtp.value = false;
-        }
-
-    } catch (error) {
-        alert("Gagal verifikasi.");
-        isVerifyingOtp.value = false;
-    }
+  });
 };
 </script>
 

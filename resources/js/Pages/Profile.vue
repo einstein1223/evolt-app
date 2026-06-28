@@ -9,7 +9,24 @@ const page = usePage();
 const authUser = page.props.auth?.user || {};
 
 const props = defineProps({
+  // Menangkap data pesanan asli yang dikirim dari ProfileController
   orders: { type: Array, default: () => [] }
+});
+
+// Memformat pesanan agar mudah dibaca di template
+const userOrders = computed(() => {
+    return props.orders.map(order => {
+        return {
+            id: order.id,
+            station_name: order.station_name || 'Stasiun Pengisian',
+            booking_number: order.transaction_code || `EV-${order.id}921`,
+            duration: order.duration ? `${order.duration} Menit` : 'N/A',
+            location: order.location || '-',
+            created_at: order.booking_time || order.created_at,
+            total_price: order.total_price || 0,
+            status: order.status || 'Berhasil'
+        };
+    });
 });
 
 // 2. SETUP FORM PROFILE
@@ -18,7 +35,7 @@ const form = useForm({
   email: authUser.email || "",
   nomor_telepon: authUser.nomor_telepon || "",
 
-  // Data Kendaraan (Biasanya Read-Only karena diupdate di Dashboard, tapi bisa diedit jika mau)
+  // Data Kendaraan
   nomor_plat: authUser.nomor_plat || "",
   car_brand: authUser.car_brand || "",
   car_series: authUser.car_series || "",
@@ -51,7 +68,6 @@ const menuItems = computed(() => [
 ]);
 
 // --- 4. ACTION HANDLERS ---
-
 const switchMenu = (id) => {
   if (id === 'logout') {
     if (confirm('Yakin ingin keluar?')) {
@@ -85,7 +101,6 @@ const changePassword = () => {
 };
 
 // Helper
-const getColorClass = (type) => type === "accent" ? "bg-[#00C853] hover:bg-[#00A142] text-white" : "";
 const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
 </script>
 
@@ -94,21 +109,18 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
 
     <Navbar />
 
-    <main class="flex-1 max-w-7xl mx-auto w-full pt-24 p-4 sm:p-6 flex flex-col md:flex-row gap-8">
+    <main class="flex-1 max-w-7xl mx-auto w-full pt-32 pb-16 px-4 sm:px-6 flex flex-col md:flex-row gap-8">
 
-      <!-- SIDEBAR -->
       <aside class="w-full md:w-72 flex-shrink-0">
-        <div class="bg-white shadow-lg rounded-2xl p-6 sticky top-24 border border-gray-100">
+        <div class="bg-white shadow-lg rounded-2xl p-6 sticky top-32 border border-gray-100">
           <div class="mb-8 text-center">
-            <div
-              class="w-20 h-20 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl border-2 border-green-100">
+            <div class="w-20 h-20 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl border-2 border-green-100">
               👤
             </div>
-            <h3 class="text-xl font-bold text-gray-900 truncate">{{ form.username }}</h3>
+            <h3 class="text-xl font-bold text-gray-900 truncate">{{ form.username || 'User E-VOLT' }}</h3>
             <p class="text-sm text-gray-500 truncate">{{ form.email }}</p>
 
-            <div v-if="form.nomor_plat"
-              class="mt-3 inline-block px-3 py-1 bg-[#f0fdf4] text-[#16a34a] rounded-full text-xs font-bold border border-green-200">
+            <div v-if="form.nomor_plat" class="mt-3 inline-block px-3 py-1 bg-[#f0fdf4] text-[#16a34a] rounded-full text-xs font-bold border border-green-200 uppercase tracking-widest">
               {{ form.nomor_plat }}
             </div>
           </div>
@@ -130,16 +142,12 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
         </div>
       </aside>
 
-      <!-- MAIN CONTENT -->
-      <section
-        class="flex-1 bg-white shadow-xl rounded-2xl p-6 sm:p-10 min-h-[600px] border border-gray-100 relative overflow-hidden">
+      <section class="flex-1 bg-white shadow-xl rounded-2xl p-6 sm:p-10 min-h-[600px] border border-gray-100 relative overflow-hidden">
 
-        <!-- 1. MENU AKUN -->
         <div v-if="activeMenu === 'account'" class="animate-fade-in">
           <h1 class="text-2xl font-bold mb-1 text-gray-900">Detail Akun</h1>
           <p class="text-gray-500 text-sm mb-6">Kelola informasi profil dan kendaraan Anda.</p>
 
-          <!-- Tabs -->
           <div class="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
             <button @click="activeTab = 'informasi_akun'"
               :class="['px-6 py-2.5 rounded-t-lg font-semibold transition-all text-sm border-b-2', activeTab === 'informasi_akun' ? 'border-[#00C853] text-[#00C853] bg-green-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50']">
@@ -152,7 +160,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
           </div>
 
           <form @submit.prevent="submitProfile" class="space-y-6">
-            <!-- Tab Informasi Akun -->
             <div v-if="activeTab === 'informasi_akun'" class="grid sm:grid-cols-2 gap-6 animate-slide-up">
               <div class="col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
@@ -185,7 +192,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
               </div>
             </div>
 
-            <!-- Tab Data Kendaraan -->
             <div v-else-if="activeTab === 'informasi_personal'" class="space-y-6 animate-slide-up">
               <div class="grid sm:grid-cols-2 gap-6">
                 <div>
@@ -200,7 +206,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
                 </div>
               </div>
 
-              <!-- CARD KENDARAAN -->
               <div class="bg-[#fcfdfa] border border-[#e3fbd8] rounded-2xl p-6 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-4 opacity-10">
                   <span class="text-8xl">🚗</span>
@@ -212,19 +217,19 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
                   <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Merk</label>
                     <input v-model="form.car_brand"
-                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
+                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm cursor-not-allowed"
                       readonly>
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Model</label>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Model / Seri</label>
                     <input v-model="form.car_series"
-                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
+                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm cursor-not-allowed"
                       readonly>
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Tipe</label>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Tipe / Varian</label>
                     <input v-model="form.car_type"
-                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm"
+                      class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-700 font-medium text-sm cursor-not-allowed"
                       readonly>
                   </div>
                   <div>
@@ -233,9 +238,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
                       class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-gray-900 font-bold text-sm uppercase focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853]">
                   </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-3 italic">*Hanya Plat Nomor yang dapat diubah langsung. Hubungi admin
-                  untuk
-                  ubah jenis mobil.</p>
+                <p class="text-xs text-gray-400 mt-4 italic">*Hanya Plat Nomor yang dapat diubah langsung di halaman ini. Ubah merk kendaraan melalui Dashboard.</p>
               </div>
 
               <div class="pt-2 flex justify-end">
@@ -248,67 +251,55 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
           </form>
         </div>
 
-        <!-- 2. MENU PESANAN SAYA -->
         <div v-else-if="activeMenu === 'orders'" class="animate-fade-in">
           <h2 class="text-2xl font-bold mb-6 text-gray-900">Riwayat Pesanan</h2>
 
-          <div v-if="props.orders && props.orders.length > 0" class="space-y-4">
-            <div v-for="order in props.orders" :key="order.id"
+          <div v-if="userOrders.length > 0" class="space-y-4">
+            <div v-for="order in userOrders" :key="order.id"
               class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col md:flex-row justify-between md:items-center gap-4 group">
               <div>
-                <div class="font-bold text-gray-800 text-lg group-hover:text-[#00C853] transition-colors">{{
-                  order.station_name }}</div>
+                <div class="font-bold text-gray-800 text-lg group-hover:text-[#00C853] transition-colors">
+                  {{ order.station_name }}
+                </div>
                 <div class="text-sm text-gray-500 flex flex-wrap items-center gap-3 mt-2">
-                  <span
-                    class="bg-gray-100 px-3 py-1 rounded-md font-mono text-gray-700 font-medium border border-gray-200">{{
-                      order.booking_number }}</span>
-                  <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> {{
-                    order.duration }}</span>
-                  <span class="flex items-center gap-1" v-if="order.location && order.location !== '-'"><span
-                      class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> {{ order.location }}</span>
+                  <span class="bg-gray-100 px-3 py-1 rounded-md font-mono text-gray-700 font-medium border border-gray-200">
+                    {{ order.booking_number }}
+                  </span>
+                  <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> {{ order.duration }}</span>
+                  <span class="flex items-center gap-1" v-if="order.location && order.location !== '-'"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> {{ order.location }}</span>
                 </div>
                 <div class="text-xs text-gray-400 mt-2 font-medium">
-                  {{ new Date(order.created_at).toLocaleDateString('id-ID', {
-                    weekday: 'long', day: 'numeric', month:
-                      'long',
-                    year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                  {{ new Date(order.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
                 </div>
               </div>
 
-              <div
-                class="text-right flex flex-row md:flex-col justify-between items-center md:items-end gap-2 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
+              <div class="text-right flex flex-row md:flex-col justify-between items-center md:items-end gap-2 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
                 <div class="font-extrabold text-[#00C853] text-xl">Rp {{ formatRupiah(order.total_price) }}</div>
-                <span
-                  class="px-4 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 uppercase tracking-wide">
+                <span class="px-4 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 uppercase tracking-wide">
                   {{ order.status }}
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- Empty State -->
-          <div v-else
-            class="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50">
+          <div v-else class="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50">
             <div class="text-6xl mb-4 opacity-30">🎫</div>
             <p class="text-lg font-medium text-gray-600 mb-2">Belum ada riwayat pesanan.</p>
             <p class="text-sm text-gray-400 mb-6">Mulai pesanan pertama Anda sekarang.</p>
             <Link :href="route('dashboard')"
               class="px-6 py-3 bg-[#00C853] text-white font-bold rounded-xl hover:bg-[#008e3b] transition shadow-lg active:scale-95">
-              Cari Stasiun
+              Cari Stasiun EV
             </Link>
           </div>
         </div>
 
-        <!-- 3. MENU LAINNYA -->
         <div v-else-if="activeMenu === 'news'" class="animate-fade-in">
           <h2 class="text-2xl font-bold mb-4 text-gray-900">Berita & Update</h2>
           <div class="p-6 bg-blue-50 border border-blue-100 rounded-2xl mb-4 flex items-start gap-4">
             <div class="text-3xl">📢</div>
             <div>
-              <div class="font-bold text-blue-900 text-lg">Rilis Fitur Baru</div>
-              <p class="text-sm text-blue-700 mt-1 leading-relaxed">Kini Anda bisa melihat estimasi harga sebelum
-                melakukan
-                pembayaran! Nikmati kemudahan booking tanpa antri.</p>
+              <div class="font-bold text-blue-900 text-lg">E-VOLT Kini Tersedia di Batam!</div>
+              <p class="text-sm text-blue-700 mt-1 leading-relaxed">Sistem reservasi pintar E-VOLT resmi beroperasi, nikmati kemudahan mencari stasiun tanpa repot mengantre panjang.</p>
             </div>
           </div>
         </div>
@@ -320,16 +311,13 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Kata Sandi Saat Ini</label>
               <input type="password" v-model="passwordForm.current_password"
                 class="w-full border border-gray-300 p-3.5 rounded-xl focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853] transition" />
-              <div v-if="passwordForm.errors.current_password" class="text-red-500 text-xs mt-1">{{
-                passwordForm.errors.current_password }}</div>
+              <div v-if="passwordForm.errors.current_password" class="text-red-500 text-xs mt-1">{{ passwordForm.errors.current_password }}</div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Kata Sandi Baru</label>
               <input type="password" v-model="passwordForm.password"
                 class="w-full border border-gray-300 p-3.5 rounded-xl focus:ring-2 focus:ring-[#00C853] focus:border-[#00C853] transition" />
-              <div v-if="passwordForm.errors.password" class="text-red-500 text-xs mt-1">{{ passwordForm.errors.password
-                }}
-              </div>
+              <div v-if="passwordForm.errors.password" class="text-red-500 text-xs mt-1">{{ passwordForm.errors.password }}</div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Konfirmasi Kata Sandi</label>
@@ -360,32 +348,15 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID').format(val);
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s ease-out forwards;
-}
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
 </style>

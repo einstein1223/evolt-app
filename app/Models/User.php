@@ -36,6 +36,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'birthDate',
         'idType',
         'idNumber',
+        'battery_capacity', // Tambahkan ini
+        'max_range',
     ];
 
     /**

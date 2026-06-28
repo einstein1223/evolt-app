@@ -9,17 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up(): void
+  public function up(): void
 {
     Schema::table('users', function (Blueprint $table) {
-        // Ubah nomor_plat jadi boleh kosong dulu
         $table->string('nomor_plat')->nullable()->change();
         
-        // Tambah kolom baru untuk detail mobil
-        $table->string('car_brand')->nullable();  // Merk: Hyundai, Wuling
-        $table->string('car_type')->nullable();   // Tipe: SUV, Sedan
-        $table->string('car_series')->nullable(); // Series: Ioniq 5, Air EV
+        // Data Mobil
+        $table->string('car_brand')->nullable(); 
+        $table->string('car_series')->nullable(); 
+        
+        // Data Spesifikasi (PENTING untuk fitur baterai/jarak)
+        $table->float('battery_capacity')->nullable(); 
+        $table->integer('max_range')->nullable();
     });
+
 }
 
 public function down(): void

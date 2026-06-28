@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User; // Pastikan model User di-import untuk pengecekan spesifik
 
 class LoginRequest extends FormRequest
 {
@@ -28,6 +29,8 @@ class LoginRequest extends FormRequest
             // 'email' adalah nama input v-model dari form Vue
             'email' => ['required', 'string'], 
             'password' => ['required', 'string'],
+            // [TAMBAHAN] Validasi input role dari frontend
+            'role' => ['required', 'string', 'in:user,host'], 
         ];
     }
 
@@ -40,14 +43,25 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // GANTI: Auth::attempt($this->only('email', 'password')...
-        // MENJADI: Auth::attempt($this->getCredentials()...
+        // Auth::attempt sekarang akan mengecek email/username + password + role sekaligus
         if (! Auth::attempt($this->getCredentials(), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            // [TAMBAHAN] Logika untuk memberikan pesan error yang spesifik jika salah role
+            $loginInput = $this->input('email');
+            $fieldType = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+            $requestedRole = $this->input('role');
+            
+            $userExists = User::where($fieldType, $loginInput)->first();
+            
+            $errorMessage = trans('auth.failed'); // Default error: "Kredensial tidak cocok."
+            
+            if ($userExists && $userExists->role !== $requestedRole) {
+                $errorMessage = 'Akun ini tidak memiliki akses sebagai ' . ucfirst($requestedRole) . '.';
+            }
+
             throw ValidationException::withMessages([
-                // Error tetap dilempar ke field 'email'
-                'email' => trans('auth.failed'),
+                'email' => $errorMessage,
             ]);
         }
 
@@ -55,8 +69,7 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * [METODE BARU]
-     * Menyiapkan kredensial untuk login (bisa email atau username).
+     * Menyiapkan kredensial untuk login (bisa email atau username, PLUS ROLE).
      */
     public function getCredentials(): array
     {
@@ -70,6 +83,8 @@ class LoginRequest extends FormRequest
         return [
             $fieldType => $loginInput,
             'password' => $this->input('password'),
+            // [TAMBAHAN] Masukkan role ke dalam array kredensial yang akan dicek
+            'role' => $this->input('role'), 
         ];
     }
 

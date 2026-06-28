@@ -1,17 +1,19 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const isMenuOpen = ref(false);
 const page = usePage();
 const isScrolled = ref(false);
 
-const getDashboardRoute = () => {
-  const user = page.props.auth.user;
-  if (!user) return route('welcome');
+// Mengambil data user yang sedang login agar mudah dipanggil di template
+const user = computed(() => page.props.auth.user);
 
-  if (user.role === 'admin') return route('admin.dashboard');
-  if (user.role === 'operator') return route('operator.dashboard');
+const getDashboardRoute = () => {
+  if (!user.value) return route('welcome');
+
+  if (user.value.role === 'admin') return route('admin.dashboard');
+  if (user.value.role === 'host') return route('host.dashboard'); // Disesuaikan dengan role host kamu
   return route('dashboard'); // default to user dashboard
 };
 
@@ -33,7 +35,7 @@ onUnmounted(() => {
     :class="['fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300', isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md py-2' : 'bg-transparent py-4']">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300">
       <Link :href="getDashboardRoute()" class="text-2xl font-semibold text-[#00C853]">
-        E-<span class="text-gray-900 font-bsemiold">VOLT</span>
+        E-<span class="text-gray-900 font-semibold">VOLT</span>
       </Link>
 
       <nav class="hidden md:flex ml-auto items-center gap-12 text-gray-700 font-medium">
@@ -44,10 +46,25 @@ onUnmounted(() => {
       </nav>
 
       <div class="hidden md:flex items-center ml-6">
-        <Link :href="route('login')"
-          class="px-6 py-2 border-2 border-[#00C853] text-[#00C853] font-semibold rounded-lg hover:bg-[#00C853] hover:text-white transition duration-300 shadow-md">
-          Masuk
-        </Link>
+        <template v-if="user">
+          <Link :href="getDashboardRoute()" class="flex items-center gap-3 group">
+            <div class="text-right">
+              <p class="text-xs text-gray-500">Halo,</p>
+              <p class="font-bold text-gray-900 group-hover:text-[#00C853] transition-colors">
+                {{ user.username }}
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-[#00C853] text-white flex items-center justify-center font-bold shadow-sm">
+              {{ user.username.charAt(0).toUpperCase() }}
+            </div>
+          </Link>
+        </template>
+        <template v-else>
+          <Link :href="route('login')"
+            class="px-6 py-2 border-2 border-[#00C853] text-[#00C853] font-semibold rounded-lg hover:bg-[#00C853] hover:text-white transition duration-300 shadow-md">
+            Masuk
+          </Link>
+        </template>
       </div>
 
       <button @click="isMenuOpen = !isMenuOpen"
@@ -83,10 +100,26 @@ onUnmounted(() => {
               class="py-2 px-3 block hover:bg-lime-50 rounded-lg text-gray-700 font-medium transition duration-150">
               Gabung Mitra</Link>
 
-            <Link @click="isMenuOpen = false" :href="route('login')"
-              class="mt-4 px-6 py-2 border-2 border-[#00C853] text-[#00C853] font-semibold rounded-lg hover:bg-[#00C853] hover:text-white transition duration-300 shadow-md text-center">
-              Masuk
-            </Link>
+            <div class="border-t border-gray-100 mt-2 pt-4">
+              <template v-if="user">
+                <Link @click="isMenuOpen = false" :href="getDashboardRoute()"
+                  class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-lime-50 transition">
+                  <div class="w-8 h-8 rounded-full bg-[#00C853] text-white flex items-center justify-center font-bold text-sm">
+                    {{ user.username.charAt(0).toUpperCase() }}
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500">Masuk sebagai</p>
+                    <p class="font-bold text-gray-900">{{ user.username }}</p>
+                  </div>
+                </Link>
+              </template>
+              <template v-else>
+                <Link @click="isMenuOpen = false" :href="route('login')"
+                  class="block w-full px-6 py-2 border-2 border-[#00C853] text-[#00C853] font-semibold rounded-lg hover:bg-[#00C853] hover:text-white transition duration-300 shadow-md text-center">
+                  Masuk
+                </Link>
+              </template>
+            </div>
           </nav>
         </div>
       </div>

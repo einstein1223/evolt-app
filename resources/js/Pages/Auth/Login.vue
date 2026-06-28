@@ -8,7 +8,7 @@
     <main class="login-container">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-black text-slate-900 tracking-tight">
-          <span class="text-[#84cc16]">E</span>-VOLT
+          <span class="text-[#00C853]">E</span>-VOLT
         </h1>
         <p class="text-slate-500 text-sm mt-2">Welcome back to the Future of Energy</p>
       </div>
@@ -21,6 +21,34 @@
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-5">
+        
+        <div class="bg-slate-100 p-1.5 rounded-xl flex items-center justify-between gap-1 mb-2">
+          <button
+            type="button"
+            @click="form.role = 'user'"
+            :class="[
+              'flex-1 py-2 text-sm font-semibold rounded-lg transition-all',
+              form.role === 'user' 
+                ? 'bg-white text-slate-900 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-700'
+            ]"
+          >
+            User
+          </button>
+          <button
+            type="button"
+            @click="form.role = 'host'"
+            :class="[
+              'flex-1 py-2 text-sm font-semibold rounded-lg transition-all',
+              form.role === 'host' 
+                ? 'bg-white text-slate-900 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-700'
+            ]"
+          >
+            Host
+          </button>
+        </div>
+
         <div class="space-y-1.5">
           <label for="email" class="block text-sm font-semibold text-slate-700">Email Address</label>
           <input 
@@ -80,7 +108,7 @@
             class="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
             <span v-if="form.processing">Logging in...</span>
-            <span v-else>Sign In</span>
+            <span v-else>Sign In as {{ form.role === 'host' ? 'Host' : 'User' }}</span>
             <svg v-if="!form.processing" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
             </svg>
@@ -105,6 +133,7 @@ import { ref } from 'vue';
 import { useForm, Link } from '@inertiajs/vue3';
 
 const form = useForm({
+  role: 'user', // <--- Tambahan State Role (Bisa 'user' atau 'host')
   email: '',
   password: '',
   remember: false,
@@ -113,6 +142,7 @@ const form = useForm({
 const isPasswordVisible = ref(false);
 
 const handleLogin = () => {
+  // Nanti data role otomatis terkirim bersama email & password
   form.post(route('login'), {
     onFinish: () => form.reset('password'),
   });
@@ -123,12 +153,12 @@ const handleLogin = () => {
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 .login-page {
-  font-family: 'Plus Jakarta Sans', sans-serif; /* Font modern yang sangat populer untuk UI */
+  font-family: 'Plus Jakarta Sans', sans-serif;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f8fafc; /* Slate-50 background */
+  background-color: #f8fafc;
   padding: 1.5rem;
   position: relative;
 }
@@ -137,18 +167,18 @@ const handleLogin = () => {
   width: 100%;
   max-width: 440px;
   background-color: #ffffff;
-  border-radius: 1.5rem; /* Rounded-2xl */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); /* Soft shadow */
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
   padding: 3rem 2.5rem;
   z-index: 10;
-  border: 1px solid #f1f5f9; /* Slate-100 border */
+  border: 1px solid #f1f5f9;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 640px) {
   .login-container {
     padding: 2rem 1.5rem;
-    box-shadow: none; /* Remove shadow on mobile for cleaner look */
+    box-shadow: none;
     background-color: transparent;
     border: none;
   }
