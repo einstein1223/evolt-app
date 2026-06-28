@@ -64,14 +64,15 @@ podman run -d \
   --name evolt-app \
   --network host \
   --restart unless-stopped \
-  -e RUN_MIGRATIONS=true \
   --env-file .env \
   evolt-app
 # Ganti dengan 'docker run ...' jika memakai Docker
 ```
 
-> **Penjelasan Variabel Env:**
-> * `-e RUN_MIGRATIONS=true`: Container akan otomatis menunggu koneksi database siap, lalu menjalankan `php artisan migrate --force` saat pertama kali dijalankan.
+> **⚠️ Catatan Penting Tentang Migrasi Database:**
+> * Perintah di atas menjalankan aplikasi tanpa migrasi otomatis (direkomendasikan jika database sudah berisi tabel/data).
+> * Jika ini adalah **database baru (fresh)** dan Anda ingin migrasi berjalan otomatis saat container start, tambahkan flag `-e RUN_MIGRATIONS=true` saat menjalankan container.
+> * Jika database sudah ada tapi gagal migrasi karena kolom duplikat, **jangan** gunakan flag `RUN_MIGRATIONS=true` agar container tidak crash-loop. Jalankan migrasi secara manual via CLI container jika diperlukan (lihat bagian bawah).
 
 ---
 
