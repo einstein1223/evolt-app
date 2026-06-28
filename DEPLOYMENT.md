@@ -57,7 +57,7 @@ podman build -t evolt-app .
 ```
 
 ### Langkah 5: Jalankan Container Aplikasi
-Jalankan container menggunakan mode **host network** agar dapat langsung mengakses database lokal VPS (`127.0.0.1`) dan meneruskan port `8080` langsung ke host:
+Jalankan container menggunakan mode **host network** agar dapat langsung mengakses database lokal VPS (`127.0.0.1`) dan meneruskan port `8081` langsung ke host:
 
 ```bash
 podman run -d \
@@ -77,7 +77,7 @@ podman run -d \
 
 ## Konfigurasi Nginx di VPS Host (Reverse Proxy)
 
-Sekarang hubungkan Nginx di VPS Anda dengan Nginx di dalam container (yang berjalan di port `8080` localhost).
+Sekarang hubungkan Nginx di VPS Anda dengan Nginx di dalam container (yang berjalan di port `8081` localhost).
 
 1. Buat file konfigurasi block server baru:
    ```bash
@@ -90,7 +90,7 @@ Sekarang hubungkan Nginx di VPS Anda dengan Nginx di dalam container (yang berja
        server_name evolt.my.id www.evolt.my.id;
 
        location / {
-           proxy_pass http://127.0.0.1:8080;
+           proxy_pass http://127.0.0.1:8081;
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

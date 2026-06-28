@@ -97,8 +97,8 @@ RUN mkdir -p /var/www/html/storage/framework/cache/data \
 # Make entrypoint script executable
 RUN chmod +x /var/www/html/docker/entrypoint.sh
 
-# Expose port 8080 (handled by internal Nginx)
-EXPOSE 8080
+# Expose port 8081 (handled by internal Nginx)
+EXPOSE 8081
 
 # Define entrypoint and default command
 ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
