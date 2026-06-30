@@ -23,9 +23,10 @@ Route::get('/contact', fn() => Inertia::render('ContactUs'))->name('contact');
 Route::get('/gabung-mitra', fn() => Inertia::render('GabungMitra'))->name('gabung.mitra');
 Route::get('/ev-pedia', fn() => Inertia::render('EVPedia'))->name('ev.pedia');
 
-// Webhook Paymentku — tanpa CSRF
-Route::post('/paymentku/webhook', [BookingController::class, 'handleWebhook'])
-    ->name('paymentku.webhook')
+// ✅ PENTING: URL harus /paymenku/webhook (bukan /paymentku)
+// URL ini yang dikirim sebagai callback_url ke Paymenku saat create transaksi
+Route::post('/paymenku/webhook', [BookingController::class, 'handleWebhook'])
+    ->name('paymenku.webhook')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 /*
@@ -44,7 +45,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/booking/slots',            [BookingController::class, 'slots'])          ->name('booking.slots');
     Route::get('/booking/payment-channels', [BookingController::class, 'paymentChannels'])->name('booking.payment-channels');
     Route::post('/booking',                 [BookingController::class, 'store'])          ->name('booking.store');
-    // ✅ Cek status pembayaran — dipakai QRIS polling di frontend
     Route::get('/booking/check-status/{bookingCode}', [BookingController::class, 'checkStatus'])->name('booking.check-status');
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -82,11 +82,10 @@ Route::middleware(['auth'])->group(function () {
 // MITRA HOST
 Route::middleware(['auth', 'role:host'])->group(function () {
     Route::get('/host-dashboard',       [HostController::class, 'index'])           ->name('host.dashboard');
+    Route::post('/host/station',        [HostController::class, 'storeStation'])    ->name('host.station.store');
     Route::post('/host/toggle-status',  [HostController::class, 'toggleStatus'])    ->name('host.toggle');
     Route::get('/host/guest/{userId}',  [HostController::class, 'showGuest'])       ->name('host.guest.detail');
-    // ✅ FIX: Realtime chart polling
     Route::get('/host/chart-data',      [HostController::class, 'chartData'])       ->name('host.chart');
-    // ✅ FIX: Cancel booking oleh host
     Route::delete('/host/booking/{id}', [BookingController::class, 'destroyByHost'])->name('host.booking.destroy');
 });
 

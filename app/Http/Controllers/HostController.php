@@ -97,7 +97,39 @@ class HostController extends Controller
             'all_bookings'  => $allBookings,
         ]);
     }
+      public function storeStation(Request $request)
+    {
+        $request->validate([
+            'name'          => 'required|string|max:255',
+            'address'       => 'required|string',
+            'city'          => 'required|string|max:255',
+            'phone'         => 'nullable|string|max:20',
+            'type'          => 'nullable|string|max:100',
+            'location_type' => 'nullable|string|max:100',
+            'price'         => 'nullable|numeric|min:0',
+            'service_fee'   => 'nullable|numeric|min:0',
+            'lat'           => 'nullable|numeric|between:-90,90',
+            'lng'           => 'nullable|numeric|between:-180,180',
+        ]);
 
+        Station::create([
+            'user_id'       => auth()->id(),
+            'name'          => $request->name,
+            'address'       => $request->address,
+            'city'          => $request->city,
+            'phone'         => $request->phone,
+            'type'          => $request->type,
+            'location_type' => $request->location_type,
+            'price'         => $request->price       ?? 0,
+            'service_fee'   => $request->service_fee ?? 0,
+            'lat'           => $request->lat         ?: null,
+            'lng'           => $request->lng         ?: null,
+            'status'        => 'Tutup',
+            'is_open'       => false,
+        ]);
+
+        return back();
+    }
     /**
      * GET /host/chart-data  — polling realtime dari frontend
      */

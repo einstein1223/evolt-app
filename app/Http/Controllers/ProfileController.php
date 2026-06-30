@@ -21,15 +21,45 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        // Ambil semua booking milik user yang sedang login, urutkan terbaru
+        // Ambil semua booking milik user yang login, urutkan terbaru
+        // ✅ Pilih kolom yang dibutuhkan Vue saja agar tidak ada field null
         $bookings = Booking::where('user_id', Auth::id())
-                        ->orderBy('booking_date', 'desc')
-                        ->get();
+            ->orderBy('booking_date', 'desc')
+            ->get([
+                'id',
+                'booking_code',
+                'station_name',
+                'location',
+                'booking_date',
+                'booking_slot',
+                'duration',
+                'total_price',
+                'status',
+                'port_type',
+                'plate_number',
+                'end_time',
+            ])
+            ->map(fn($b) => [
+                'id'            => $b->id,
+                // ✅ Mapping field → sesuaikan dengan yang dipakai Vue (booking_code, station_name, dll)
+                'booking_code'  => $b->booking_code,
+                'station_name'  => $b->station_name  ?? 'Stasiun Pengisian',
+                'location'      => $b->location      ?? '-',
+                'booking_date'  => $b->booking_date,
+                'booking_slot'  => $b->booking_slot  ?? null,
+                'duration'      => $b->duration      ?? 0,
+                'total_price'   => $b->total_price   ?? 0,
+                'status'        => $b->status        ?? 'Menunggu Pembayaran',
+                'port_type'     => $b->port_type     ?? '-',
+                'plate_number'  => $b->plate_number  ?? Auth::user()->nomor_plat ?? '-',
+                'end_time'      => $b->end_time      ?? null,
+                'created_at'    => $b->booking_date, // Vue pakai created_at untuk display tanggal
+            ]);
 
         return Inertia::render('user/UserProfile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status'          => session('status'),
-            'bookings'        => $bookings, // <-- kirim sebagai 'bookings'
+            'bookings'        => $bookings,
         ]);
     }
 
@@ -38,7 +68,6 @@ class ProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        // 1. Validasi Input
         $request->validate([
             'username'         => ['sometimes', 'string', 'max:255'],
             'email'            => ['sometimes', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
@@ -57,13 +86,12 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        // 2. Isi data standar
         $user->fill($request->only([
             'username', 'email', 'nomor_plat', 'nomor_telepon',
             'city', 'gender', 'birthDate', 'battery_capacity', 'max_range'
         ]));
 
-        // 3. Mapping manual field kendaraan (dari UserDashboard maupun UserProfile)
+        // Mapping field kendaraan (dua kemungkinan nama field dari frontend)
         if ($request->has('brand')) {
             $user->car_brand = $request->input('brand');
         } elseif ($request->has('car_brand')) {
@@ -86,12 +114,11 @@ class ProfileController extends Controller
             $user->nomor_plat = $request->input('plateNumber');
         }
 
-        // 4. Reset verifikasi email jika email diubah
+        // Reset verifikasi email jika email diubah
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
-        // 5. Simpan
         $user->save();
 
         return Redirect::back()->with('message', 'Profil berhasil diperbarui!');
