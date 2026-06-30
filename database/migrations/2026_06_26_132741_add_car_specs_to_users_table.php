@@ -9,19 +9,22 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'battery_capacity')) {
-                $table->float('battery_capacity')->nullable(); // Dalam kWh
-            }
-            if (!Schema::hasColumn('users', 'max_range')) {
-                $table->integer('max_range')->nullable();     // Dalam km
-            }
-            if (!Schema::hasColumn('users', 'car_type')) {
-                $table->string('car_type', 50)->nullable();    // Tipe/Varian Mobil
-            }
-        });
-    }
+    public function up(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        // Cek dulu sebelum menambahkan, hindari duplicate column error
+        if (!Schema::hasColumn('users', 'battery_capacity')) {
+            $table->float('battery_capacity')->nullable();
+        }
+        if (!Schema::hasColumn('users', 'charge_port_type')) {
+            $table->string('charge_port_type')->nullable();
+        }
+        if (!Schema::hasColumn('users', 'max_charge_speed')) {
+            $table->float('max_charge_speed')->nullable();
+        }
+        // tambahkan kolom lain yang ada di migration ini dengan pola yang sama
+    });
+}
 
     /**
      * Reverse the migrations.
@@ -29,15 +32,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'battery_capacity')) {
-                $table->dropColumn('battery_capacity');
-            }
-            if (Schema::hasColumn('users', 'max_range')) {
-                $table->dropColumn('max_range');
-            }
-            if (Schema::hasColumn('users', 'car_type')) {
-                $table->dropColumn('car_type');
-            }
+            //
         });
     }
 };

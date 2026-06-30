@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { router, usePage, Head, Link } from '@inertiajs/vue3';
+import { router, usePage, Head, Link, useForm } from '@inertiajs/vue3';
 import Footer from '@/Components/Footer.vue';
 import axios from 'axios';
 
@@ -28,13 +28,13 @@ const lastUpdated   = ref(null);
 const isRefreshing  = ref(false);
 
 // ─── BOOKING TABLE STATE ──────────────────────────────────────────────────────
-const bookings          = ref([...props.all_bookings]);
-const showDeleteConfirm = ref(false);
-const deletingId        = ref(null);
-const deletingCode      = ref('');
-const isDeleting        = ref(false);
-const deleteError       = ref('');
-const bookingSearch     = ref('');
+const bookings            = ref([...props.all_bookings]);
+const showDeleteConfirm   = ref(false);
+const deletingId          = ref(null);
+const deletingCode        = ref('');
+const isDeleting          = ref(false);
+const deleteError         = ref('');
+const bookingSearch       = ref('');
 const bookingStatusFilter = ref('');
 
 const filteredBookings = computed(() => {
@@ -57,14 +57,44 @@ const uniqueStatuses = computed(() => [...new Set(props.all_bookings.map(b => b.
 
 let pollInterval = null;
 
+// ─── STATE MODAL PENDAFTARAN STATION ─────────────────────────────────────────
+const showRegisterModal = ref(false);
+
+// Opsi pilihan untuk select
+const stationTypes    = ['DC Fast Charging', 'AC Standard', 'AC Fast Charging', 'Ultra Fast Charging'];
+const locationTypes   = ['Mall / Pusat Perbelanjaan', 'Perumahan', 'Perkantoran', 'Restoran / Kafe', 'Hotel', 'SPBU', 'Parkiran Umum', 'Lainnya'];
+
+const registerForm = useForm({
+    name:          '',
+    address:       '',
+    city:          '',
+    phone:         '',
+    type:          '',
+    location_type: '',
+    price:         '',
+    service_fee:   '',
+    lat:           '',
+    lng:           '',
+});
+
+const submitStation = () => {
+    registerForm.post(route('host.station.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showRegisterModal.value = false;
+            registerForm.reset();
+        },
+    });
+};
+
 // ─── REALTIME POLLING ─────────────────────────────────────────────────────────
 const fetchChartData = async () => {
     if (!props.station) return;
     isRefreshing.value = true;
     try {
         const res = await axios.get(route('host.chart'));
-        chartData.value     = res.data.weekly_chart || chartData.value;
-        liveStats.value     = {
+        chartData.value   = res.data.weekly_chart || chartData.value;
+        liveStats.value   = {
             total_revenue: res.data.total_revenue ?? liveStats.value.total_revenue,
             month_revenue: res.data.month_revenue ?? liveStats.value.month_revenue,
             growth:        props.stats.growth,
@@ -80,17 +110,17 @@ const fetchChartData = async () => {
 
 // ─── DELETE BOOKING ───────────────────────────────────────────────────────────
 const confirmDelete = (booking) => {
-    deletingId.value   = booking.id;
-    deletingCode.value = booking.booking_code;
-    deleteError.value  = '';
+    deletingId.value        = booking.id;
+    deletingCode.value      = booking.booking_code;
+    deleteError.value       = '';
     showDeleteConfirm.value = true;
 };
 
 const cancelDelete = () => {
     showDeleteConfirm.value = false;
-    deletingId.value   = null;
-    deletingCode.value = '';
-    deleteError.value  = '';
+    deletingId.value        = null;
+    deletingCode.value      = '';
+    deleteError.value       = '';
 };
 
 const executeDelete = async () => {
@@ -102,11 +132,10 @@ const executeDelete = async () => {
         await axios.delete(route('host.booking.destroy', deletingId.value), {
             headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
         });
-        // Hapus dari list lokal
-        bookings.value = bookings.value.filter(b => b.id !== deletingId.value);
+        bookings.value          = bookings.value.filter(b => b.id !== deletingId.value);
         showDeleteConfirm.value = false;
-        deletingId.value   = null;
-        deletingCode.value = '';
+        deletingId.value        = null;
+        deletingCode.value      = '';
     } catch (e) {
         deleteError.value = e.response?.data?.message ?? 'Gagal menghapus booking. Coba lagi.';
     }
@@ -116,22 +145,20 @@ const executeDelete = async () => {
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
 const statusBadge = (status) => {
     const map = {
-        'Lunas':                 'bg-green-100 text-green-700',
-        'Booked':                'bg-blue-100 text-blue-700',
-        'Selesai':               'bg-teal-100 text-teal-700',
-        'Menunggu Pembayaran':   'bg-yellow-100 text-yellow-700',
-        'Gagal Bayar':           'bg-red-100 text-red-700',
-        'Dibatalkan':            'bg-gray-100 text-gray-500',
-        'Dibatalkan Host':       'bg-orange-100 text-orange-600',
-        'Kadaluarsa':            'bg-red-50 text-red-400',
-        'Refund':                'bg-purple-100 text-purple-600',
+        'Lunas':               'bg-green-100 text-green-700',
+        'Booked':              'bg-blue-100 text-blue-700',
+        'Selesai':             'bg-teal-100 text-teal-700',
+        'Menunggu Pembayaran': 'bg-yellow-100 text-yellow-700',
+        'Gagal Bayar':         'bg-red-100 text-red-700',
+        'Dibatalkan':          'bg-gray-100 text-gray-500',
+        'Dibatalkan Host':     'bg-orange-100 text-orange-600',
+        'Kadaluarsa':          'bg-red-50 text-red-400',
+        'Refund':              'bg-purple-100 text-purple-600',
     };
     return map[status] ?? 'bg-gray-100 text-gray-500';
 };
 
-const isDeletable = (status) => {
-    return !['Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa'].includes(status);
-};
+const isDeletable = (status) => !['Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa'].includes(status);
 
 // ─── SVG CHART ────────────────────────────────────────────────────────────────
 const CHART_W = 560;
@@ -175,7 +202,7 @@ const logout = () => router.post(route('logout'));
 const toggleStore = () => {
     if (isToggling.value || !props.station) return;
     isToggling.value = true;
-    const prev = isOpen.value;
+    const prev   = isOpen.value;
     isOpen.value = !isOpen.value;
     router.post(route('host.toggle'), { is_open: isOpen.value }, {
         preserveScroll: true,
@@ -237,6 +264,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
+
                     <Transition name="dropdown">
                         <div v-if="showProfileMenu"
                             class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden py-2 z-50">
@@ -284,7 +312,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
-                                ID Station: {{ station.id }}
+                                {{ station.city || station.address }}
                             </p>
                         </div>
                         <!-- TOGGLE SWITCH -->
@@ -295,8 +323,14 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                 </div>
                                 <div class="h-full w-1/2 rounded-full shadow-lg flex items-center justify-center transition-all duration-500"
                                     :class="isOpen ? 'translate-x-full bg-[#00C853] shadow-green-900/20' : 'translate-x-0 bg-red-500 shadow-red-900/20'">
-                                    <i v-if="isToggling" class="fas fa-spinner fa-spin text-white"></i>
-                                    <i v-else class="fas" :class="isOpen ? 'fa-check text-slate-900' : 'fa-times text-white'"></i>
+                                    <svg v-if="isToggling" class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                    </svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path v-if="isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" class="text-slate-900"/>
+                                        <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" class="text-white"/>
+                                    </svg>
                                 </div>
                             </div>
                             <p class="text-center text-xs text-slate-500 mt-3 opacity-0 group-hover:opacity-100 transition">Klik untuk mengubah status</p>
@@ -450,22 +484,25 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     </Link>
                                 </template>
                                 <div v-else class="h-40 flex flex-col items-center justify-center text-slate-300">
-                                    <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                    <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                    </svg>
                                     <p class="text-xs font-medium">Belum ada transaksi</p>
                                 </div>
                             </div>
                             <div class="mt-6 pt-4 border-t border-slate-50">
                                 <button class="w-full py-3 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition shadow-lg shadow-slate-200 flex items-center justify-center gap-2">
-                                    <i class="fas fa-qrcode"></i> Scan Tamu Baru
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                    </svg>
+                                    Scan Tamu Baru
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ══════════════════════════════════════════
-                     TABEL MANAJEMEN BOOKING
-                ══════════════════════════════════════════ -->
+                <!-- TABEL MANAJEMEN BOOKING -->
                 <div v-if="station" class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                     <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
@@ -473,7 +510,6 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                             <p class="text-sm text-slate-400">Kelola semua booking di stasiun Anda</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <!-- Search -->
                             <div class="relative">
                                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -481,7 +517,6 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                 <input v-model="bookingSearch" type="text" placeholder="Cari kode / nama / plat..."
                                     class="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-lime-400 w-full sm:w-52 transition"/>
                             </div>
-                            <!-- Filter Status -->
                             <select v-model="bookingStatusFilter"
                                 class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-lime-400 transition bg-white">
                                 <option value="">Semua Status</option>
@@ -505,8 +540,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50">
-                                <tr v-for="b in filteredBookings" :key="b.id"
-                                    class="hover:bg-slate-50/60 transition">
+                                <tr v-for="b in filteredBookings" :key="b.id" class="hover:bg-slate-50/60 transition">
                                     <td class="px-5 py-4">
                                         <span class="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">{{ b.booking_code }}</span>
                                     </td>
@@ -522,19 +556,13 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                         <p class="text-slate-600">{{ b.port_type }}</p>
                                         <p class="text-xs text-slate-400">{{ b.duration }}</p>
                                     </td>
-                                    <td class="px-5 py-4 text-right font-bold text-slate-800">
-                                        {{ formatRupiah(b.total_price) }}
+                                    <td class="px-5 py-4 text-right font-bold text-slate-800">{{ formatRupiah(b.total_price) }}</td>
+                                    <td class="px-5 py-4 text-center">
+                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full" :class="statusBadge(b.status)">{{ b.status }}</span>
                                     </td>
                                     <td class="px-5 py-4 text-center">
-                                        <span class="text-xs font-bold px-2.5 py-1 rounded-full" :class="statusBadge(b.status)">
-                                            {{ b.status }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-4 text-center">
-                                        <button v-if="isDeletable(b.status)"
-                                            @click="confirmDelete(b)"
-                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
-                                            title="Batalkan booking">
+                                        <button v-if="isDeletable(b.status)" @click="confirmDelete(b)"
+                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition" title="Batalkan booking">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                             </svg>
@@ -545,7 +573,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                 <tr v-if="filteredBookings.length === 0">
                                     <td colspan="7" class="px-5 py-12 text-center text-slate-300">
                                         <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2-2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                         </svg>
                                         <p class="text-sm font-medium">Tidak ada booking ditemukan</p>
                                     </td>
@@ -568,8 +596,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <p class="text-xs text-slate-500">{{ b.booking_date }} · <span class="text-lime-600 font-bold">{{ b.booking_slot }}</span></p>
                                     <p class="text-sm font-bold text-slate-800">{{ formatRupiah(b.total_price) }}</p>
                                 </div>
-                                <button v-if="isDeletable(b.status)"
-                                    @click="confirmDelete(b)"
+                                <button v-if="isDeletable(b.status)" @click="confirmDelete(b)"
                                     class="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition border border-red-100">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -587,50 +614,47 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                     </div>
                 </div>
 
-                <!-- EMPTY STATE -->
+                <!-- EMPTY STATE — belum punya station -->
                 <div v-else class="text-center py-20">
                     <div class="text-6xl mb-4">⚡</div>
                     <h2 class="text-2xl font-bold text-slate-900 mb-2">Belum Punya Station?</h2>
                     <p class="text-slate-500 mb-6">Daftarkan lokasi Anda sekarang dan mulai hasilkan uang.</p>
-                    <button class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+                    <button @click="showRegisterModal = true"
+                        class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">
                         Daftar Jadi Mitra
                     </button>
                 </div>
+
             </div>
         </main>
 
         <Footer />
 
         <!-- ══════════════════════════════════════════
-             MODAL KONFIRMASI HAPUS
+             MODAL KONFIRMASI HAPUS BOOKING
         ══════════════════════════════════════════ -->
         <Transition name="fade">
             <div v-if="showDeleteConfirm"
                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9000] px-4"
                 @click.self="cancelDelete">
-
                 <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-                    <!-- Icon -->
                     <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
                         <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                     </div>
-
                     <h3 class="text-xl font-black text-slate-900 text-center mb-2">Batalkan Booking?</h3>
                     <p class="text-slate-500 text-sm text-center mb-1">Booking berikut akan dibatalkan:</p>
                     <div class="bg-slate-50 rounded-2xl px-4 py-3 text-center mb-5 border border-slate-100">
                         <span class="font-mono font-black text-slate-800 text-base">{{ deletingCode }}</span>
                         <p class="text-xs text-slate-400 mt-1">Status akan berubah menjadi <span class="font-bold text-orange-500">Dibatalkan Host</span></p>
                     </div>
-
                     <div v-if="deleteError" class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
                         <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <span>{{ deleteError }}</span>
                     </div>
-
                     <div class="flex gap-3">
                         <button @click="cancelDelete"
                             class="flex-1 py-3 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition">
@@ -651,6 +675,199 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                 </div>
             </div>
         </Transition>
+
+        <!-- ══════════════════════════════════════════
+             MODAL DAFTAR STATION BARU (LENGKAP)
+        ══════════════════════════════════════════ -->
+        <Transition name="fade">
+            <div v-if="showRegisterModal"
+                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center z-[9000] px-4 py-6 overflow-y-auto"
+                @click.self="showRegisterModal = false">
+
+                <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 relative my-auto">
+
+                    <!-- Tombol Close -->
+                    <button @click="showRegisterModal = false"
+                        class="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition bg-slate-50 hover:bg-slate-100 p-2 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+
+                    <!-- Header Modal -->
+                    <div class="mb-6 pr-10">
+                        <div class="w-12 h-12 bg-lime-100 text-lime-600 rounded-2xl flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-900">Daftar Station Baru</h3>
+                        <p class="text-sm text-slate-500 mt-1">Lengkapi detail lokasi charging station EV Anda.</p>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="space-y-4">
+
+                        <!-- Divider: Informasi Dasar -->
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Informasi Dasar</span>
+                            <div class="h-px flex-grow bg-slate-100"></div>
+                        </div>
+
+                        <!-- Nama Station -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                                Nama Station <span class="text-red-500">*</span>
+                            </label>
+                            <input v-model="registerForm.name" type="text"
+                                placeholder="Contoh: Batam Center EV Station" required
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm"
+                                :class="{ 'border-red-400 focus:border-red-400 focus:ring-red-400': registerForm.errors.name }"/>
+                            <p v-if="registerForm.errors.name" class="text-red-500 text-xs mt-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                {{ registerForm.errors.name }}
+                            </p>
+                        </div>
+
+                        <!-- Kota -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                                Kota <span class="text-red-500">*</span>
+                            </label>
+                            <input v-model="registerForm.city" type="text"
+                                placeholder="Contoh: Batam" required
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm"
+                                :class="{ 'border-red-400 focus:border-red-400 focus:ring-red-400': registerForm.errors.city }"/>
+                            <p v-if="registerForm.errors.city" class="text-red-500 text-xs mt-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                {{ registerForm.errors.city }}
+                            </p>
+                        </div>
+
+                        <!-- Alamat -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                                Alamat Lengkap <span class="text-red-500">*</span>
+                            </label>
+                            <textarea v-model="registerForm.address" rows="3"
+                                placeholder="Masukkan alamat lengkap lokasi station..." required
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm resize-none"
+                                :class="{ 'border-red-400 focus:border-red-400 focus:ring-red-400': registerForm.errors.address }"></textarea>
+                            <p v-if="registerForm.errors.address" class="text-red-500 text-xs mt-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                {{ registerForm.errors.address }}
+                            </p>
+                        </div>
+
+                        <!-- Nomor Telepon -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">Nomor Telepon</label>
+                            <input v-model="registerForm.phone" type="tel"
+                                placeholder="Contoh: 08123456789"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm"/>
+                        </div>
+
+                        <!-- Divider: Tipe & Kategori -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Tipe & Kategori</span>
+                            <div class="h-px flex-grow bg-slate-100"></div>
+                        </div>
+
+                        <!-- Tipe Station + Tipe Lokasi (2 kolom) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Tipe Charger</label>
+                                <select v-model="registerForm.type"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm bg-white text-slate-700">
+                                    <option value="">Pilih tipe...</option>
+                                    <option v-for="t in stationTypes" :key="t" :value="t">{{ t }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Tipe Lokasi</label>
+                                <select v-model="registerForm.location_type"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm bg-white text-slate-700">
+                                    <option value="">Pilih lokasi...</option>
+                                    <option v-for="l in locationTypes" :key="l" :value="l">{{ l }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Divider: Harga -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Harga</span>
+                            <div class="h-px flex-grow bg-slate-100"></div>
+                        </div>
+
+                        <!-- Harga per kWh + Biaya Layanan (2 kolom) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Harga per kWh (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">Rp</span>
+                                    <input v-model="registerForm.price" type="number" min="0" step="500"
+                                        placeholder="0"
+                                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm"/>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Biaya Layanan (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">Rp</span>
+                                    <input v-model="registerForm.service_fee" type="number" min="0" step="500"
+                                        placeholder="0"
+                                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Divider: Koordinat (opsional) -->
+                        <div class="flex items-center gap-3 pt-2">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Koordinat <span class="normal-case font-medium">(opsional)</span></span>
+                            <div class="h-px flex-grow bg-slate-100"></div>
+                        </div>
+                        <p class="text-xs text-slate-400 -mt-2">Isi koordinat agar station muncul di peta. Bisa diisi nanti.</p>
+
+                        <!-- Lat + Lng (2 kolom) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Latitude</label>
+                                <input v-model="registerForm.lat" type="number" step="any"
+                                    placeholder="Contoh: 1.1300"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm font-mono"/>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1.5">Longitude</label>
+                                <input v-model="registerForm.lng" type="number" step="any"
+                                    placeholder="Contoh: 104.0530"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#00C853] focus:ring-1 focus:ring-[#00C853] transition text-sm font-mono"/>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-4 flex gap-3">
+                            <button type="button" @click="showRegisterModal = false"
+                                class="flex-1 py-3 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition">
+                                Batal
+                            </button>
+                            <button type="button" @click="submitStation" :disabled="registerForm.processing"
+                                class="flex-[2] py-3 bg-[#00C853] text-white rounded-xl font-bold hover:bg-green-600 transition flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-green-200">
+                                <svg v-if="registerForm.processing" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                </svg>
+                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                {{ registerForm.processing ? 'Mendaftarkan...' : 'Daftarkan Station' }}
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </Transition>
+
     </div>
 </template>
 

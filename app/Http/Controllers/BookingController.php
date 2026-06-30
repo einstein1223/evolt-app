@@ -15,22 +15,52 @@ use Inertia\Inertia;
 class BookingController extends Controller
 {
     // ──────────────────────────────────────────────────────────────────────────
-    // HELPER: Buat header Paymentku dengan HMAC-SHA256 signature
-    // Signature = hmac_sha256(timestamp + "." + body_json, secret_key)
+    // HELPER: Base URL Paymenku
+    // ──────────────────────────────────────────────────────────────────────────
+    private function paymentkuBaseUrl(): string
+    {
+        return config('services.paymentku.base_url', 'https://paymenku.com/api/v1');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // HELPER: Header Paymenku
+    // ✅ Nama header HARUS persis: X-Paymenku-Signature & X-Paymenku-Timestamp
+    // ✅ Signature = hmac_sha256(timestamp + "." + body, secret)
     // ──────────────────────────────────────────────────────────────────────────
     private function paymentkuHeaders(string $bodyJson = ''): array
     {
-        $timestamp = (string) time(); // Unix timestamp
+        $timestamp = (string) time();
         $secret    = config('services.paymentku.secret_key');
         $signature = hash_hmac('sha256', $timestamp . '.' . $bodyJson, $secret);
 
         return [
-            'Authorization'        => 'Bearer ' . $secret,
-            'Content-Type'         => 'application/json',
-            'Accept'               => 'application/json',
-            'X-PaymenKu-Timestamp' => $timestamp,
-            'X-PaymenKu-Signature' => $signature,
+            'Authorization'         => 'Bearer ' . $secret,
+            'Content-Type'          => 'application/json',
+            'Accept'                => 'application/json',
+            'X-Paymenku-Timestamp'  => $timestamp,  // ✅ huruf kecil 'enku'
+            'X-Paymenku-Signature'  => $signature,  // ✅ huruf kecil 'enku'
         ];
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // HELPER: Map status Paymenku → status lokal DB
+    // ✅ Sesuai dokumentasi: pending, paid, expired, cancelled, failed, refunded
+    // ──────────────────────────────────────────────────────────────────────────
+    private function mapPaymentkuStatus(string $rawStatus): ?string
+    {
+        $map = [
+            'paid'      => 'Lunas',
+            'pending'   => 'Menunggu Pembayaran',
+            'expired'   => 'Kadaluarsa',
+            'cancelled' => 'Dibatalkan',
+            'cancel'    => 'Dibatalkan',
+            'failed'    => 'Gagal Bayar',
+            'failure'   => 'Gagal Bayar',
+            'refunded'  => 'Refund',
+            'refund'    => 'Refund',
+        ];
+
+        return $map[strtolower(trim($rawStatus))] ?? null;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -42,8 +72,10 @@ class BookingController extends Controller
 
         $today = Carbon::today('Asia/Jakarta')->toDateString();
 
+        $cancelledStatuses = ['Batal', 'Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa', 'Gagal Bayar'];
+
         $bookedSlots = Booking::where('station_id', $request->station_id)
-            ->whereNotIn('status', ['Batal', 'Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa', 'Gagal Bayar'])
+            ->whereNotIn('status', $cancelledStatuses)
             ->whereDate('booking_date', $today)
             ->pluck('booking_slot')
             ->filter()
@@ -62,13 +94,13 @@ class BookingController extends Controller
             $headers  = $this->paymentkuHeaders();
             $response = Http::timeout(10)
                 ->withHeaders($headers)
-                ->get('https://paymenku.com/api/v1/payment-channels');
+                ->get($this->paymentkuBaseUrl() . '/payment-channels');
 
             if ($response->successful()) {
                 return response()->json($response->json());
             }
 
-            Log::warning('Paymentku: Gagal fetch payment channels', [
+            Log::warning('Paymenku: Gagal fetch payment channels', [
                 'status' => $response->status(),
                 'body'   => $response->body(),
             ]);
@@ -76,18 +108,17 @@ class BookingController extends Controller
             return response()->json(['status' => 'error', 'data' => []], 500);
 
         } catch (\Exception $e) {
-            Log::error('Paymentku: Exception fetch payment channels', ['error' => $e->getMessage()]);
+            Log::error('Paymenku: Exception fetch payment channels', ['error' => $e->getMessage()]);
             return response()->json(['status' => 'error', 'data' => []], 500);
         }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // GET /booking/check-status/{bookingCode}
-    // Cek status pembayaran dari Paymentku
+    // Polling status dari Vue setiap ~5 detik
     // ──────────────────────────────────────────────────────────────────────────
     public function checkStatus(string $bookingCode)
     {
-        // Pastikan booking milik user yang login
         $booking = Booking::where('booking_code', $bookingCode)
             ->where('user_id', Auth::id())
             ->first();
@@ -96,50 +127,73 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking tidak ditemukan.'], 404);
         }
 
+        // Status sudah final — tidak perlu hit API lagi
+        $finalStatuses = ['Lunas', 'Kadaluarsa', 'Dibatalkan', 'Gagal Bayar', 'Refund', 'Dibatalkan Host'];
+        if (in_array($booking->status, $finalStatuses)) {
+            return response()->json([
+                'booking_code' => $bookingCode,
+                'status'       => $booking->status,
+                'is_final'     => true,
+            ]);
+        }
+
         try {
             $headers  = $this->paymentkuHeaders();
             $response = Http::timeout(10)
                 ->withHeaders($headers)
-                ->get("https://paymenku.com/api/v1/check-status/{$bookingCode}");
+                ->get($this->paymentkuBaseUrl() . '/check-status/' . $bookingCode);
 
             if ($response->successful()) {
-                $data   = $response->json();
-                $status = strtolower($data['data']['status'] ?? $data['status'] ?? '');
+                $data      = $response->json();
+                $rawStatus = $data['data']['status']
+                    ?? $data['status']
+                    ?? $data['data']['transaction_status']
+                    ?? '';
 
-                $statusMap = [
-                    'paid'      => 'Lunas',
-                    'pending'   => 'Menunggu Pembayaran',
-                    'expired'   => 'Kadaluarsa',
-                    'cancelled' => 'Dibatalkan',
-                    'failed'    => 'Gagal Bayar',
-                    'refunded'  => 'Refund',
-                ];
+                $newStatus = $this->mapPaymentkuStatus($rawStatus);
 
-                if (isset($statusMap[$status])) {
-                    $booking->update(['status' => $statusMap[$status]]);
+                if ($newStatus && $newStatus !== $booking->status) {
+                    $booking->update(['status' => $newStatus]);
+                    Log::info("checkStatus: Booking {$bookingCode} diupdate → {$newStatus}");
                 }
 
+                $fresh = $booking->fresh();
                 return response()->json([
                     'booking_code'   => $bookingCode,
-                    'status'         => $booking->fresh()->status,
-                    'paymentku_data' => $data,
+                    'status'         => $fresh->status,
+                    'is_final'       => in_array($fresh->status, $finalStatuses),
+                    'paymenku_data'  => $data,
                 ]);
             }
 
-            return response()->json(['message' => 'Gagal cek status dari Paymentku.'], 500);
+            Log::warning('Paymenku: checkStatus gagal', [
+                'booking_code' => $bookingCode,
+                'http_status'  => $response->status(),
+                'body'         => $response->body(),
+            ]);
+
+            return response()->json([
+                'booking_code' => $bookingCode,
+                'status'       => $booking->status,
+                'is_final'     => false,
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('Paymentku: Exception check status', [
+            Log::error('Paymenku: Exception checkStatus', [
                 'booking_code' => $bookingCode,
                 'error'        => $e->getMessage(),
             ]);
-            return response()->json(['message' => 'Gagal terhubung ke Paymentku.'], 500);
+
+            return response()->json([
+                'booking_code' => $bookingCode,
+                'status'       => $booking->status,
+                'is_final'     => false,
+            ]);
         }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // POST /booking
-    // Simpan booking baru + buat transaksi ke Paymentku (QRIS default)
     // ──────────────────────────────────────────────────────────────────────────
     public function store(Request $request)
     {
@@ -170,8 +224,8 @@ class BookingController extends Controller
             $stationName = $station?->name ?? $request->station_name;
             $location    = $station?->location ?? $station?->address ?? '-';
 
-            // Cek konflik slot — gunakan lock agar race condition tidak terjadi
-            $conflictQuery = Booking::whereNotIn('status', ['Batal', 'Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa', 'Gagal Bayar'])
+            $cancelledStatuses = ['Batal', 'Dibatalkan', 'Dibatalkan Host', 'Kadaluarsa', 'Gagal Bayar'];
+            $conflictQuery     = Booking::whereNotIn('status', $cancelledStatuses)
                 ->where('booking_slot', $bookingSlot)
                 ->whereDate('booking_date', $today)
                 ->lockForUpdate();
@@ -209,9 +263,8 @@ class BookingController extends Controller
             ]);
         });
 
-      // ── Hit Paymentku ──────────────────────────────────────────────────────
+        // ── Hit Paymenku API ───────────────────────────────────────────────────
         try {
-            // Minimum amount Paymentku = 1000
             $amount      = max((int) $request->total_price, 1000);
             $channelCode = $request->payment_channel ?? 'qris';
 
@@ -219,9 +272,11 @@ class BookingController extends Controller
                 'channel_code'   => $channelCode,
                 'amount'         => $amount,
                 'reference_id'   => $bookingCode,
-                'customer_name'  => Auth::user()->name  ?? 'Customer',
+                'customer_name'  => Auth::user()->name ?? Auth::user()->username ?? 'Customer',
                 'customer_email' => Auth::user()->email ?? 'customer@example.com',
-                'return_url'     => url('/profile'),
+                'return_url'     => url('/profile?tab=orders'),
+                // ✅ WAJIB: Paymenku kirim webhook ke sini setiap status berubah
+                'callback_url'   => url('/paymenku/webhook'),
                 'order_items'    => [
                     [
                         'name'     => 'EV Charging - ' . ($stationName ?? $request->station_name),
@@ -231,26 +286,28 @@ class BookingController extends Controller
                 ],
             ];
 
-            $phone = Auth::user()->nomor_telepon ?? Auth::user()->phone ?? Auth::user()->no_hp ?? null;
-            if ($phone) $payload['customer_phone'] = $phone;
+            $phone = Auth::user()->nomor_telepon
+                ?? Auth::user()->phone
+                ?? Auth::user()->no_hp
+                ?? null;
 
-            // PERBAIKAN 1: Ambil langsung dari env() agar tidak null
-            $secretKey = env('PAYMENKU_SECRET_KEY'); 
+            if ($phone) {
+                $payload['customer_phone'] = $phone;
+            }
+
+            $bodyJson = json_encode($payload);
+            $headers  = $this->paymentkuHeaders($bodyJson);
 
             $response = Http::timeout(15)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $secretKey, // <-- Gunakan variabel $secretKey
-                    'Content-Type'  => 'application/json',
-                    'Accept'        => 'application/json',
-                ])
-                ->post('https://paymenku.com/api/v1/transaction/create', $payload);
+                ->withHeaders($headers)
+                ->post($this->paymentkuBaseUrl() . '/transaction/create', $payload);
 
             if ($response->successful()) {
                 $paymentData = $response->json();
 
                 $paymentUrl = $paymentData['data']['checkout_url']
                     ?? $paymentData['data']['payment_url']
-                    ?? $paymentData['data']['pay_url'] 
+                    ?? $paymentData['data']['pay_url']
                     ?? $paymentData['checkout_url']
                     ?? null;
 
@@ -258,6 +315,11 @@ class BookingController extends Controller
                     ?? $paymentData['data']['qr_url']
                     ?? $paymentData['data']['qr_image']
                     ?? null;
+
+                Log::info("Paymenku: Booking {$bookingCode} berhasil dibuat", [
+                    'payment_url' => $paymentUrl,
+                    'channel'     => $channelCode,
+                ]);
 
                 return response()->json([
                     'message'      => 'Booking berhasil dibuat!',
@@ -269,88 +331,105 @@ class BookingController extends Controller
                 ], 201);
             }
 
-            Log::error('Paymentku Error', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
+            Log::error('Paymenku: Gagal buat transaksi', [
+                'booking_code' => $bookingCode,
+                'http_status'  => $response->status(),
+                'body'         => $response->body(),
             ]);
 
-            // PERBAIKAN 2: Tampilkan pesan error asli dari API Paymenku ke layar Vue!
             Booking::where('booking_code', $bookingCode)->update(['status' => 'Gagal Bayar']);
+
             return response()->json([
-                'message' => 'Error API Paymenku: ' . $response->body(), // <-- Ini akan memunculkan alasan aslinya
+                'message'      => 'Gagal membuat transaksi: ' . $response->body(),
                 'booking_code' => $bookingCode,
             ], 500);
 
         } catch (\Exception $e) {
-            Log::error('Paymentku Exception', ['error' => $e->getMessage()]);
+            Log::error('Paymenku: Exception store', [
+                'booking_code' => $bookingCode,
+                'error'        => $e->getMessage(),
+            ]);
+
             Booking::where('booking_code', $bookingCode)->update(['status' => 'Gagal Bayar']);
-            
+
             return response()->json([
-                'message' => 'Error Sistem: ' . $e->getMessage(),
+                'message'      => 'Error sistem: ' . $e->getMessage(),
                 'booking_code' => $bookingCode,
             ], 500);
         }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // POST /paymentku/webhook
-    // Verifikasi: X-PaymenKu-Signature = hmac_sha256(timestamp + "." + body, secret)
+    // POST /paymenku/webhook  (tanpa CSRF)
+    // ✅ Header dari dokumentasi: X-Paymenku-Signature, X-Paymenku-Timestamp
+    // ✅ Payload dari dokumentasi: reference_id, status, event, trx_id, dll
     // ──────────────────────────────────────────────────────────────────────────
     public function handleWebhook(Request $request)
     {
         $jsonContent     = $request->getContent();
-        $timestamp       = $request->header('X-PaymenKu-Timestamp') ?? '';
-        $signatureHeader = $request->header('X-PaymenKu-Signature') ?? '';
-        $mySignature     = hash_hmac('sha256', $timestamp . '.' . $jsonContent, config('services.paymentku.webhook_secret'));
+        $timestamp       = $request->header('X-Paymenku-Timestamp') ?? '';
+        $signatureHeader = $request->header('X-Paymenku-Signature') ?? '';
+
+        $secret      = config('services.paymentku.webhook_secret')
+            ?? config('services.paymentku.secret_key');
+        $mySignature = hash_hmac('sha256', $timestamp . '.' . $jsonContent, $secret);
 
         if (!hash_equals($mySignature, $signatureHeader)) {
-            Log::warning('Webhook Paymentku: Signature tidak valid!', [
-                'received'  => $signatureHeader,
-                'expected'  => $mySignature,
-                'timestamp' => $timestamp,
+            Log::warning('Webhook Paymenku: Signature tidak valid!', [
+                'received'     => $signatureHeader,
+                'expected'     => $mySignature,
+                'timestamp'    => $timestamp,
+                'body_preview' => substr($jsonContent, 0, 300),
             ]);
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
         $data    = json_decode($jsonContent, true);
+
+        // ✅ Sesuai dokumentasi Paymenku: field "reference_id"
         $orderId = $data['reference_id'] ?? null;
-        $status  = strtolower($data['status'] ?? '');
+        $status  = $data['status']       ?? '';
+        $event   = $data['event']        ?? '';
+
+        Log::info('Webhook Paymenku diterima', [
+            'event'        => $event,
+            'reference_id' => $orderId,
+            'status'       => $status,
+            'trx_id'       => $data['trx_id'] ?? null,
+        ]);
 
         if (!$orderId) {
-            Log::warning('Webhook Paymentku: reference_id tidak ditemukan', ['payload' => $data]);
+            Log::warning('Webhook Paymenku: reference_id kosong', ['payload' => $data]);
             return response()->json(['message' => 'reference_id tidak ditemukan'], 400);
         }
 
-        $statusMap = [
-            'paid'      => 'Lunas',
-            'pending'   => 'Menunggu Pembayaran',
-            'expired'   => 'Kadaluarsa',
-            'cancelled' => 'Dibatalkan',
-            'failed'    => 'Gagal Bayar',
-            'refunded'  => 'Refund',
-        ];
-
-        $newStatus = $statusMap[$status] ?? null;
+        $newStatus = $this->mapPaymentkuStatus($status);
 
         if ($newStatus) {
-            Booking::where('booking_code', $orderId)->update(['status' => $newStatus]);
-            Log::info("Webhook Paymentku: Booking {$orderId} → {$newStatus}", [
+            $updated = Booking::where('booking_code', $orderId)->update(['status' => $newStatus]);
+
+            Log::info("Webhook Paymenku: {$orderId} → {$newStatus}", [
+                'rows_updated'    => $updated,
                 'trx_id'          => $data['trx_id']          ?? null,
                 'amount'          => $data['amount']          ?? null,
                 'amount_received' => $data['amount_received'] ?? null,
                 'payment_channel' => $data['payment_channel'] ?? null,
                 'paid_at'         => $data['paid_at']         ?? null,
             ]);
+
+            if ($updated === 0) {
+                Log::warning("Webhook Paymenku: Booking '{$orderId}' tidak ditemukan di DB!");
+            }
         } else {
-            Log::warning("Webhook Paymentku: Status tidak dikenal '{$status}' untuk order {$orderId}");
+            Log::warning("Webhook Paymenku: Status tidak dikenal '{$status}' untuk {$orderId}");
         }
 
-        return response()->json(['message' => 'Webhook berhasil diproses']);
+        // Selalu return 200 agar Paymenku tidak retry
+        return response()->json(['message' => 'OK']);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // DELETE /host/booking/{id}
-    // Host membatalkan booking dari stasiunnya sendiri
     // ──────────────────────────────────────────────────────────────────────────
     public function destroyByHost(Request $request, $id)
     {
