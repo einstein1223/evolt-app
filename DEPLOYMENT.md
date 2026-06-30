@@ -156,3 +156,18 @@ podman logs -f evolt-app
 podman stop evolt-app
 podman rm evolt-app
 ```
+
+```
+Log Laravel (detail error internal Laravel):
+
+bash
+docker exec -it evolt-app tail -n 100 storage/logs/laravel.log
+Tambahkan -f untuk memantau langsung (real-time):
+
+bash
+docker exec -it evolt-app tail -f storage/logs/laravel.log
+Log Container (Nginx & PHP-FPM stdout/stderr):
+
+bash
+docker logs -f evolt-app
+```
