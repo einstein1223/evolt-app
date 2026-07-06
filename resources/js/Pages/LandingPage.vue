@@ -21,18 +21,34 @@ const getDashboardRoute = () => {
 
 const handleScroll = () => { isScrolled.value = window.scrollY > 50; };
 
+// FIX #2: simpan referensi observer supaya bisa di-disconnect saat unmount (mencegah memory leak)
+let scrollObserver = null;
 const observeElements = () => {
-    const observer = new IntersectionObserver((entries) => {
+    scrollObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => { if (entry.isIntersecting) entry.target.classList.add('active'); });
     }, { threshold: 0.1 });
-    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    document.querySelectorAll('.reveal').forEach((el) => scrollObserver.observe(el));
 };
 
 onMounted(() => {
     window.addEventListener('scroll', handleScroll);
     nextTick(() => observeElements());
 });
-onUnmounted(() => { window.removeEventListener('scroll', handleScroll); });
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
+
+    // FIX #2: putuskan observer agar tidak menumpuk di memori
+    if (scrollObserver) {
+        scrollObserver.disconnect();
+        scrollObserver = null;
+    }
+
+    // FIX #3: pastikan body overflow direset kalau komponen unmount saat modal masih terbuka
+    if (isModalOpen.value) {
+        document.body.style.overflow = '';
+    }
+});
 
 const openModal = () => { isModalOpen.value = true; document.body.style.overflow = 'hidden'; };
 const closeModal = () => { isModalOpen.value = false; document.body.style.overflow = ''; };
@@ -46,20 +62,24 @@ const scrollToSection = (id) => {
     }
 };
 
-const waLink = (message) => `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`;
-
-const services = [
-    { title: 'Aplikasi Terintegrasi', desc: 'Satu aplikasi untuk cari, booking, dan bayar.', iconClass: 'bg-lime-50 text-lime-600' },
-    { title: 'Manajemen IoT', desc: 'Monitoring stasiun secara real-time 24/7.', iconClass: 'bg-slate-100 text-slate-600' },
-    { title: 'Sistem Pembayaran', desc: 'Dukungan QRIS dan E-Wallet otomatis.', iconClass: 'bg-lime-50 text-lime-600' },
-    { title: 'Laporan Keuangan', desc: 'Transparansi pendapatan bagi mitra host.', iconClass: 'bg-slate-100 text-slate-600' },
-];
-
+// FIX #1: satu sumber data nomor telepon untuk kartu kontak & link WhatsApp
+// contactData.phone tetap dipakai untuk tampilan (format cantik untuk mata manusia)
+// waPhoneNumber dipakai khusus untuk link wa.me (format angka murni tanpa spasi/simbol)
 const contactData = {
     phone: '+62 812 7835 396',
     email: 'evoltidn@gmail.com',
     address: 'Jl. Ahmad Yani Batam Kota,\nKota Batam, Kepulauan Riau,\nIndonesia',
 };
+
+const waPhoneNumber = computed(() => contactData.phone.replace(/[^0-9]/g, '').replace(/^0/, '62'));
+const waLink = (message) => `https://wa.me/${waPhoneNumber.value}?text=${encodeURIComponent(message)}`;
+
+const services = [
+    { title: 'Aplikasi Terintegrasi', desc: 'Satu aplikasi untuk cari, booking, dan bayar.', iconClass: 'bg-lime-50 text-lime-600' },
+    { title: 'Manajemen IoT', desc: 'Monitoring stasiun secara real-time 24/7.', iconClass: 'bg-lime-50 text-lime-600' },
+    { title: 'Sistem Pembayaran', desc: 'Dukungan QRIS dan E-Wallet otomatis.', iconClass: 'bg-lime-50 text-lime-600' },
+    { title: 'Laporan Keuangan', desc: 'Transparansi pendapatan bagi mitra host.', iconClass: 'bg-lime-50 text-lime-600' },
+];
 </script>
 
 <template>
@@ -92,7 +112,7 @@ const contactData = {
                                 <p class="font-bold text-gray-900 group-hover:text-lime-600 transition-colors text-sm">{{ user.username }}</p>
                             </div>
                             <div class="w-10 h-10 rounded-full bg-lime-600 text-white flex items-center justify-center font-bold shadow-sm">
-                                {{ user.username.charAt(0).toUpperCase() }}
+                                {{ user.username?.charAt(0)?.toUpperCase() ?? '?' }}
                             </div>
                         </Link>
                     </template>
@@ -104,7 +124,7 @@ const contactData = {
 
 
                 <!-- Hamburger -->
-                <button @click="isMenuOpen = !isMenuOpen" class="md:hidden text-slate-700 hover:text-lime-600 transition ml-4" aria-label="Menu">
+                <button @click="isMenuOpen = !isMenuOpen" class="md:hidden text-slate-700 hover:text-lime-600 transition ml-4" aria-label="Menu" :aria-expanded="isMenuOpen">
 
                     <svg v-if="!isMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -128,7 +148,7 @@ const contactData = {
                                 <template v-if="user">
                                     <Link :href="getDashboardRoute()" @click="isMenuOpen = false" class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-lime-50 transition">
                                         <div class="w-8 h-8 rounded-full bg-lime-600 text-white flex items-center justify-center font-bold text-sm">
-                                            {{ user.username.charAt(0).toUpperCase() }}
+                                            {{ user.username?.charAt(0)?.toUpperCase() ?? '?' }}
                                         </div>
                                         <div>
                                             <p class="text-xs text-gray-500">Masuk sebagai</p>
@@ -151,7 +171,8 @@ const contactData = {
 
             <!-- ─── HERO ──────────────────────────────────── -->
             <section class="relative z-20 bg-white bg-[radial-gradient(circle_at_20%_20%,#ecfccb_0%,transparent_40%),radial-gradient(circle_at_90%_90%,#d9f99d_0%,transparent_40%)] overflow-hidden shadow-sm">
-                <div class="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-multiply"></div>
+                <!-- FIX #4: pattern tekstur dipindah ke lokal (unduh dari transparenttextures.com dan simpan sebagai /public/images/patterns/cubes.png) -->
+                <div class="absolute inset-0 opacity-5 pointer-events-none bg-[url('/images/patterns/cubes.png')] mix-blend-multiply"></div>
                 <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-36 pb-24 lg:pt-48 lg:pb-40 relative">
                     <div class="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
                         <div class="w-full lg:w-1/2 text-center lg:text-left z-20 reveal">
@@ -213,7 +234,8 @@ const contactData = {
                         <div class="w-full lg:w-1/2 group">
                             <div class="relative">
                                 <div class="absolute inset-0 bg-lime-200 rounded-[2.5rem] rotate-3 group-hover:rotate-6 transition-transform duration-500 ease-out"></div>
-                                <img src="https://i.pinimg.com/736x/28/8b/44/288b44c8e76a00feed1853b351057876.jpg" alt="Map Navigation" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-cover aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
+                                <!-- FIX #4: unduh gambar ini dan simpan sebagai /public/images/map-navigation.jpg -->
+                                <img src="/images/map-navigation.jpg" alt="Map Navigation" loading="lazy" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-cover aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
                             </div>
                         </div>
                         <div class="w-full lg:w-1/2 text-center lg:text-left">
@@ -226,7 +248,7 @@ const contactData = {
                         <div class="w-full lg:w-1/2 group">
                             <div class="relative">
                                 <div class="absolute inset-0 bg-lime-200 rounded-[2.5rem] -rotate-3 group-hover:-rotate-6 transition-transform duration-500 ease-out"></div>
-                                <img src="/images/uibooking.png" alt="Booking Interface" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-cover bg-lime-50 aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
+                                <img src="/images/uibooking.png" alt="Booking Interface" loading="lazy" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-cover bg-lime-50 aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
                             </div>
                         </div>
                         <div class="w-full lg:w-1/2 text-center lg:text-left">
@@ -239,7 +261,7 @@ const contactData = {
                         <div class="w-full lg:w-1/2 group">
                             <div class="relative">
                                 <div class="absolute inset-0 bg-lime-200 rounded-[2.5rem] rotate-3 group-hover:rotate-6 transition-transform duration-500 ease-out"></div>
-                                <img src="/images/admin.png" alt="Automation Dashboard" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-contain bg-white aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
+                                <img src="/images/admin.png" alt="Automation Dashboard" loading="lazy" class="relative z-10 w-full rounded-[2.5rem] shadow-2xl shadow-lime-900/10 border-4 border-white object-contain bg-white aspect-[4/3] transform transition duration-500 group-hover:-translate-y-2">
                             </div>
                         </div>
                         <div class="w-full lg:w-1/2 text-center lg:text-left">
@@ -253,7 +275,8 @@ const contactData = {
 
             <!-- ─── EV PEDIA ───────────────────────────────── -->
             <section class="py-24 bg-slate-900 relative overflow-hidden z-20">
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                <!-- FIX #4: unduh dan simpan sebagai /public/images/patterns/carbon-fibre.png -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('/images/patterns/carbon-fibre.png')]"></div>
                 <div class="absolute -top-24 -right-24 w-96 h-96 bg-lime-400 rounded-full blur-[150px] opacity-5"></div>
                 <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
                     <div class="flex flex-col lg:flex-row items-center justify-between gap-16 reveal">
@@ -294,6 +317,7 @@ const contactData = {
                         <div class="absolute top-0 right-0 w-80 h-80 bg-orange-100 rounded-full blur-[100px] -mr-20 -mt-20 pointer-events-none opacity-60"></div>
                         <div class="flex flex-col lg:flex-row items-center gap-16">
                             <div class="w-full lg:w-1/2 relative z-10">
+                                <!-- Catatan (poin 5, belum dikerjakan): sebaiknya beri badge "Segera Hadir" di sini juga, bukan hanya di dalam modal -->
                                 <span class="inline-block px-4 py-2 bg-orange-50 text-orange-600 rounded-full text-sm font-bold uppercase tracking-wider mb-8 border border-orange-100">Fitur Eksklusif</span>
                                 <h2 class="text-3xl lg:text-5xl font-black text-slate-900 mb-6 leading-tight">Pengecasan Darurat <br><span class="text-orange-500">Tetangga</span></h2>
                                 <p class="text-lg text-slate-500 mb-10 leading-relaxed">Kehabisan daya di tengah jalan? Fitur komunitas ini menghubungkan Anda dengan pemilik charger rumah terdekat yang bersedia berbagi daya.</p>
@@ -303,7 +327,7 @@ const contactData = {
                                 </button>
                             </div>
                             <div class="w-full lg:w-1/2 flex justify-center relative z-10">
-                                <img src="/images/charging-illustration.png" alt="Emergency Charging" class="w-full max-w-md transform hover:scale-105 transition duration-700 drop-shadow-2xl">
+                                <img src="/images/charging-illustration.png" alt="Emergency Charging" loading="lazy" class="w-full max-w-md transform hover:scale-105 transition duration-700 drop-shadow-2xl">
                             </div>
                         </div>
                     </div>
@@ -411,7 +435,8 @@ const contactData = {
 
             <!-- ─── CONTACT — Tanpa form Kirim Pesan ─────── -->
             <section id="kontak" class="py-24 bg-slate-900 text-white relative overflow-hidden rounded-t-[4rem] z-20">
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                <!-- FIX #4: unduh dan simpan sebagai /public/images/patterns/carbon-fibre.png (reuse file yang sama dengan section EV Pedia) -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('/images/patterns/carbon-fibre.png')]"></div>
                 <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-lime-400 rounded-full blur-[150px] opacity-5 pointer-events-none"></div>
                 <div class="max-w-7xl mx-auto px-6 relative z-10">
                     <div class="text-center mb-16 reveal">
@@ -441,15 +466,23 @@ const contactData = {
                 </div>
             </section>
 
-            <!-- Partner Logos -->
+            <!--
+                FIX #4 (sebagian) — CATATAN PENTING:
+                Section "Partner Logos" di bawah ini menampilkan logo Tesla, BYD, Hyundai, Kia
+                yang diambil dari CDN pihak ketiga. Ini SENGAJA belum saya ubah/hapus di sini
+                karena masuk kategori poin #5 (isu branding/klaim partner yang menyesatkan),
+                yang menurut kesepakatan kita dikerjakan nanti, bukan sekarang.
+                Kalau kamu tetap mau lanjut poin 4 murni (pindah ke lokal) untuk section ini
+                sebelum poin 5 selesai dibahas, tinggal bilang saja.
+            -->
             <section class="py-16 bg-white/80 backdrop-blur-sm relative z-20">
                 <div class="max-w-7xl mx-auto px-6 text-center reveal">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-12">Didukung Ekosistem Global</p>
                     <div class="flex flex-wrap justify-center items-center gap-8 md:gap-20 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
-                        <img src="https://cdn.worldvectorlogo.com/logos/tesla-9.svg" alt="Tesla" class="h-6 md:h-8 hover:scale-110 transition-transform cursor-pointer">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e2/BYD_Auto_2022_logo.svg" alt="BYD" class="h-6 md:h-8 hover:scale-110 transition-transform cursor-pointer">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Hyundai_Motor_Company_logo.svg" alt="Hyundai" class="h-5 md:h-7 hover:scale-110 transition-transform cursor-pointer">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b6/KIA_logo3.svg" alt="Kia" class="h-5 md:h-7 hover:scale-110 transition-transform cursor-pointer">
+                        <img src="https://cdn.worldvectorlogo.com/logos/tesla-9.svg" alt="Tesla" loading="lazy" class="h-6 md:h-8 hover:scale-110 transition-transform cursor-pointer">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e2/BYD_Auto_2022_logo.svg" alt="BYD" loading="lazy" class="h-6 md:h-8 hover:scale-110 transition-transform cursor-pointer">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Hyundai_Motor_Company_logo.svg" alt="Hyundai" loading="lazy" class="h-5 md:h-7 hover:scale-110 transition-transform cursor-pointer">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b6/KIA_logo3.svg" alt="Kia" loading="lazy" class="h-5 md:h-7 hover:scale-110 transition-transform cursor-pointer">
                     </div>
                 </div>
             </section>
@@ -460,14 +493,14 @@ const contactData = {
 
         <!-- ─── MODAL ──────────────────────────────────────── -->
         <Transition name="modal-fade">
-            <div v-if="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click="closeModal">
+            <div v-if="isModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title" @click="closeModal" @keydown.esc="closeModal">
                 <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-md"></div>
                 <div class="modal-content relative bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center z-[110]" @click.stop>
                     <div class="w-20 h-20 bg-orange-50 text-orange-500 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-orange-100 shadow-inner">
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
-                    <h4 class="text-3xl font-black text-slate-900 mb-2">Segera Hadir!</h4>
-                    <p class="text-slate-500 mb-8 leading-relaxed">Fitur <span class="font-bold text-orange-600 bg-orange-50 px-1 rounded">Pengecasan Darurat</span> sedang dalam tahap uji coba final.</p>
+                    <h4 id="modal-title" class="text-3xl font-black text-slate-900 mb-2">Silahkan register sekarang!</h4>
+                    <p class="text-slate-500 mb-8 leading-relaxed">Fitur <span class="font-bold text-orange-600 bg-orange-50 px-1 rounded">Pengecasan Darurat</span> Dapat dicoba langsung dengan cara login.</p>
                     <button @click="closeModal" class="w-full bg-slate-900 text-white font-bold px-6 py-4 rounded-2xl hover:bg-slate-800 transition duration-200 shadow-xl hover:shadow-2xl hover:-translate-y-0.5">Mengerti, Terima Kasih</button>
                 </div>
             </div>

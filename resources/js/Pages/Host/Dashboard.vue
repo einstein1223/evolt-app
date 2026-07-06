@@ -326,7 +326,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     :class="isOpen ? 'translate-x-full bg-lime-500 shadow-lime-900/20' : 'translate-x-0 bg-red-500 shadow-red-900/20'">
                                     <i v-if="isToggling" class="fas fa-spinner fa-spin text-white"></i>
                                     <i v-else class="fas" :class="isOpen ? 'fa-check text-slate-900' : 'fa-times text-white'"></i>
->>>>>>> deploy-vps
+
                                 </div>
                             </div>
                             <p class="text-center text-xs text-slate-500 mt-3 opacity-0 group-hover:opacity-100 transition">Klik untuk mengubah status</p>
