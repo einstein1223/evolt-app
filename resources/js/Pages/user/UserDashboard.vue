@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from 'vue';
 import { Link, usePage, router, Head, useForm } from '@inertiajs/vue3';
 import Navbar from '@/Components/NavbarUser.vue';
 import Footer from '@/Components/Footer.vue';
@@ -53,7 +53,10 @@ const brandOptions = Object.keys(evSpecs);
 const domicileOptions = ['Batam Center', 'Nagoya', 'Harbour Bay', 'Lubuk Baja', 'Batu Aji'];
 
 // --- 3. BATTERY & RANGE LOGIC (TERSINKRONISASI LOKAL) ---
-const batteryLevel = ref(65); 
+const batteryLevel = ref(65);
+// FIX #1: Baterai ini adalah INPUT MANUAL dari user (bukan data live dari kendaraan/IoT).
+// Diberi label & ikon info yang jelas di UI agar user tidak mengira ini data otomatis.
+const isBatteryManual = true;
 
 // Menyimpan nilai baterai ke memory browser setiap ada perubahan
 watch(batteryLevel, (newVal) => {
@@ -62,7 +65,7 @@ watch(batteryLevel, (newVal) => {
 
 const maxRangeKm = computed(() => {
     if (user.value?.max_range) return user.value.max_range;
-    
+
     if (user.value?.car_brand && user.value?.car_series) {
         const seriesData = evSpecs[user.value.car_brand]?.[user.value.car_series];
         if (seriesData) {
@@ -90,7 +93,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (!lat1 || !lon1 || !lat2 || !lon2) return 999.9;
     const R = 6371; const dLat = (lat2 - lat1) * (Math.PI / 180); const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(1));
 };
 
@@ -101,16 +104,40 @@ const safeParseArray = (data) => {
     return [];
 };
 
-// Menghitung rekomendasi stasiun terdekat
+// FIX #2: Badge status sekarang dinamis mengikuti nilai status stasiun, bukan selalu hijau.
+const STATUS_STYLE_MAP = {
+    'tersedia':  { classes: 'bg-green-100 text-green-700',  label: 'Tersedia' },
+    'available': { classes: 'bg-green-100 text-green-700',  label: 'Tersedia' },
+    'ramai':     { classes: 'bg-orange-100 text-orange-700', label: 'Ramai' },
+    'penuh':     { classes: 'bg-orange-100 text-orange-700', label: 'Penuh' },
+    'perbaikan': { classes: 'bg-red-100 text-red-700',       label: 'Perbaikan' },
+    'maintenance': { classes: 'bg-red-100 text-red-700',     label: 'Perbaikan' },
+    'tutup':     { classes: 'bg-slate-200 text-slate-600',   label: 'Tutup' },
+};
+
+const getStatusStyle = (status) => {
+    const key = String(status || 'tersedia').toLowerCase().trim();
+    return STATUS_STYLE_MAP[key] || { classes: 'bg-blue-100 text-blue-700', label: status || 'Tersedia' };
+};
+
+// FIX #5: Rekomendasi kini juga menghormati filter "Area Lokasi" dari search bar (jika dipilih),
+// bukan murni jarak GPS yang independen dari search form. Beri penanda visual saat filter aktif.
 const recommendedStations = computed(() => {
     const rawStations = Array.isArray(props.stations) ? props.stations : [];
-    
+
     // Filter stasiun yang tidak tutup
-    const activeStations = rawStations.filter(s => {
+    let activeStations = rawStations.filter(s => {
         const status = String(s.status || '').toLowerCase();
         return status !== 'tutup';
     });
-    
+
+    // Jika user sudah memilih Area Lokasi di search bar, ikutkan sebagai filter
+    if (searchForm.domicile) {
+        activeStations = activeStations.filter(s =>
+            String(s.address || s.location || '').toLowerCase().includes(searchForm.domicile.toLowerCase())
+        );
+    }
+
     // Tentukan titik pusat (GPS User atau default)
     let center = userLocation.value || domicileCoordinates['Batam Center'];
 
@@ -125,13 +152,16 @@ const recommendedStations = computed(() => {
 
         const type = station.type || (safeParseArray(station.chargers_detail)[0]?.tipe) || 'Fast Charging';
         const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(station.price || 50000);
+        const statusStyle = getStatusStyle(station.status);
 
         return {
             ...station,
             realDistance: distNum,
             displayDistance: distStr,
             displayType: type,
-            displayPrice: formattedPrice
+            displayPrice: formattedPrice,
+            statusClasses: statusStyle.classes,
+            statusLabel: statusStyle.label,
         };
     });
 
@@ -145,25 +175,78 @@ const searchForm = reactive({ brand: user.value?.car_brand || '', domicile: '' }
 const isSearchDropdownOpen = reactive({ brand: false, domicile: false });
 const isSearching = ref(false);
 
+// FIX #6: refs untuk fokus & navigasi keyboard pada dropdown custom
+const searchBrandListRef = ref(null);
+const searchDomicileListRef = ref(null);
+const searchBrandActiveIndex = ref(-1);
+const searchDomicileActiveIndex = ref(-1);
+
 const toggleSearchDropdown = (type) => {
-    if (type === 'brand') { isSearchDropdownOpen.brand = !isSearchDropdownOpen.brand; isSearchDropdownOpen.domicile = false; } 
-    else { isSearchDropdownOpen.domicile = !isSearchDropdownOpen.domicile; isSearchDropdownOpen.brand = false; }
+    if (type === 'brand') {
+        isSearchDropdownOpen.brand = !isSearchDropdownOpen.brand;
+        isSearchDropdownOpen.domicile = false;
+        if (isSearchDropdownOpen.brand) {
+            searchBrandActiveIndex.value = brandOptions.indexOf(searchForm.brand);
+            nextTick(() => focusDropdownItem(searchBrandListRef, searchBrandActiveIndex.value));
+        }
+    } else {
+        isSearchDropdownOpen.domicile = !isSearchDropdownOpen.domicile;
+        isSearchDropdownOpen.brand = false;
+        if (isSearchDropdownOpen.domicile) {
+            searchDomicileActiveIndex.value = domicileOptions.indexOf(searchForm.domicile);
+            nextTick(() => focusDropdownItem(searchDomicileListRef, searchDomicileActiveIndex.value));
+        }
+    }
 };
 
-const selectSearchOption = (type, value) => { searchForm[type] = value; isSearchDropdownOpen[type] = false; };
+const focusDropdownItem = (listRef, index) => {
+    const el = listRef.value?.children?.[Math.max(index, 0)];
+    if (el && el.focus) el.focus();
+};
 
-const handleSearch = () => { 
-    isSearching.value = true; 
-    router.get('/map-results', { brand: searchForm.brand, domicile: searchForm.domicile }, { onFinish: () => isSearching.value = false }); 
+const selectSearchOption = (type, value) => {
+    searchForm[type] = value;
+    isSearchDropdownOpen[type] = false;
+};
+
+// FIX #6: Navigasi keyboard (ArrowUp/ArrowDown/Enter/Escape) untuk dropdown pencarian
+const handleDropdownKeydown = (e, type, options) => {
+    const isBrand = type === 'brand';
+    const activeIndex = isBrand ? searchBrandActiveIndex : searchDomicileActiveIndex;
+    const listRef = isBrand ? searchBrandListRef : searchDomicileListRef;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex.value = Math.min(activeIndex.value + 1, options.length - 1);
+        focusDropdownItem(listRef, activeIndex.value);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex.value = Math.max(activeIndex.value - 1, 0);
+        focusDropdownItem(listRef, activeIndex.value);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (options[activeIndex.value]) selectSearchOption(type, options[activeIndex.value]);
+    } else if (e.key === 'Escape') {
+        isSearchDropdownOpen[type] = false;
+    }
+};
+
+const handleSearch = () => {
+    isSearching.value = true;
+    router.get('/map-results', { brand: searchForm.brand, domicile: searchForm.domicile }, { onFinish: () => isSearching.value = false });
 };
 
 // Mengarahkan ke peta dengan stasiun yang dipilih
-const selectRecommendedStation = (station) => { 
-    router.get('/map-results', { station: station.name, auto_book_id: station.id }); 
+const selectRecommendedStation = (station) => {
+    router.get('/map-results', { station: station.name, auto_book_id: station.id });
 };
 
 // --- 6. SETUP POPUP LOGIC ---
-const showSetupPopup = ref(!user.value?.car_brand || !user.value?.nomor_plat);
+// FIX #4: Popup kini bisa ditutup sementara ("Nanti saja") tanpa mengisi data,
+// disimpan di sessionStorage supaya tidak muncul berulang kali dalam sesi yang sama,
+// namun tetap akan muncul lagi di sesi berikutnya selama profil belum lengkap.
+const setupSkippedThisSession = sessionStorage.getItem('evolt_setup_skipped') === '1';
+const showSetupPopup = ref((!user.value?.car_brand || !user.value?.nomor_plat) && !setupSkippedThisSession);
 const setupForm = useForm({ brand: '', series: '', variant: '', plateNumber: '' });
 const popupState = reactive({ openBrand: false, openSeries: false });
 
@@ -175,9 +258,14 @@ watch(() => setupForm.series, () => { setupForm.variant = ''; });
 const selectSetupBrand = (val) => { setupForm.brand = val; popupState.openBrand = false; };
 const selectSetupSeries = (val) => { setupForm.series = val; popupState.openSeries = false; };
 
+const skipSetup = () => {
+    sessionStorage.setItem('evolt_setup_skipped', '1');
+    showSetupPopup.value = false;
+};
+
 const submitSetup = () => {
-    if(!setupForm.brand || !setupForm.series || !setupForm.plateNumber) { alert("Mohon lengkapi semua data mobil."); return; }
-    
+    if (!setupForm.brand || !setupForm.series || !setupForm.plateNumber) { alert("Mohon lengkapi semua data mobil."); return; }
+
     let specs = { battery: 50, range: 350 };
     const carData = evSpecs[setupForm.brand]?.[setupForm.series];
     if (carData) {
@@ -185,15 +273,19 @@ const submitSetup = () => {
         if (carData[variantKey]) specs = carData[variantKey];
     }
 
-    setupForm.transform((data) => ({ 
-        ...data, 
+    setupForm.transform((data) => ({
+        ...data,
         nomor_plat: data.plateNumber.toUpperCase(),
         battery_capacity: specs.battery,
         max_range: specs.range
     }))
-    .patch(route('profile.update'), { 
-        preserveScroll: true, 
-        onSuccess: () => { showSetupPopup.value = false; searchForm.brand = setupForm.brand; } 
+    .patch(route('profile.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            sessionStorage.removeItem('evolt_setup_skipped');
+            showSetupPopup.value = false;
+            searchForm.brand = setupForm.brand;
+        }
     });
 };
 
@@ -205,7 +297,7 @@ const closeAllDropdowns = (e) => {
 // --- LIFECYCLE HOOKS ---
 onMounted(() => {
     document.addEventListener('click', closeAllDropdowns);
-    
+
     // Sinkronisasi baterai saat halaman dimuat
     const savedBattery = localStorage.getItem('evolt_user_battery');
     if (savedBattery) {
@@ -249,10 +341,11 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
                     <h1 class="text-4xl sm:text-6xl font-black text-slate-900 leading-tight mb-4 tracking-tight">
                         Siap Menjelajah?
                     </h1>
-                    <p class="text-lg sm:text-xl font-medium text-slate-800/70 max-w-2xl mx-auto mb-10">
+                    <!-- FIX #3: Kontras teks dinaikkan dari text-slate-800/70 -> text-slate-900/85 + font-semibold agar lebih terbaca di atas latar lime, terutama di luar ruangan -->
+                    <p class="text-lg sm:text-xl font-semibold text-slate-900/85 max-w-2xl mx-auto mb-10">
                         Pantau kondisi baterai dan temukan stasiun pengisian terdekat.
                     </p>
-                    
+
                     <!-- BATERAI WIDGET -->
                     <div class="bg-white/60 backdrop-blur-xl border border-white/50 p-8 rounded-[2.5rem] shadow-xl max-w-md mx-auto hover:shadow-2xl transition-shadow duration-300">
                         <div class="flex justify-between items-end mb-4">
@@ -261,23 +354,48 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2v-6zM18 9h1a1 1 0 011 1v4a1 1 0 01-1 1h-1V9z"/></svg>
                                 </div>
                                 <div class="text-left">
-                                    <span class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sisa Baterai</span>
-                                    <span class="block text-sm font-bold text-slate-800">Normal</span>
+                                    <span class="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                        Sisa Baterai
+                                        <!-- FIX #1: penanda bahwa nilai ini input manual, bukan data live -->
+                                        <span
+                                            v-if="isBatteryManual"
+                                            class="group relative inline-flex items-center"
+                                            tabindex="0"
+                                            role="note"
+                                            aria-label="Nilai baterai ini adalah input manual, bukan data langsung dari kendaraan"
+                                        >
+                                            <svg class="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                            <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 normal-case tracking-normal text-[11px] font-medium bg-slate-900 text-white rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-20">
+                                                Ini input manual, geser sesuai kondisi baterai mobil Anda saat ini.
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <span class="block text-sm font-bold text-slate-800">
+                                        Normal
+                                        <span class="text-[10px] font-semibold text-slate-500 normal-case">· Estimasi manual</span>
+                                    </span>
                                 </div>
                             </div>
                             <span class="text-5xl font-black transition-colors duration-300 tracking-tighter" :class="batteryColor">{{ batteryLevel }}<span class="text-2xl align-top">%</span></span>
                         </div>
-                        
+
                         <div class="relative w-full h-4 bg-slate-200 rounded-full mb-4 overflow-hidden">
                             <div class="absolute top-0 left-0 h-full bg-slate-900 rounded-full transition-all duration-300" :style="`width: ${batteryLevel}%`"></div>
-                            <input type="range" v-model="batteryLevel" min="0" max="100" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            <input
+                                type="range"
+                                v-model="batteryLevel"
+                                min="0"
+                                max="100"
+                                aria-label="Atur estimasi sisa baterai secara manual"
+                                class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            >
                         </div>
-                        
+
                         <div class="flex justify-between items-center mb-4 px-1">
                             <span class="text-xs font-bold text-slate-500">Butuh untuk Penuh:</span>
                             <span class="text-xs font-bold text-red-500">{{ neededToFull }}% Kapasitas</span>
                         </div>
-                        
+
                         <div class="flex justify-between items-center pt-4 border-t border-slate-900/10">
                             <span class="text-slate-600 font-medium text-sm">Estimasi Jarak</span>
                             <div class="text-right">
@@ -293,9 +411,20 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
             <div class="relative z-30 px-4 -mt-12 sm:-mt-16 mb-8">
                 <div class="max-w-4xl mx-auto">
                     <form @submit.prevent="handleSearch" class="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-3 border border-gray-100 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-100 ring-4 ring-white/50">
-                        
+
                         <div class="relative flex-1 search-dropdown-trigger">
-                            <div @click.stop="toggleSearchDropdown('brand')" class="h-16 flex items-center px-6 cursor-pointer hover:bg-lime-50/50 rounded-[1.5rem] lg:rounded-l-[1.5rem] lg:rounded-r-none transition-colors group">
+                            <div
+                                @click.stop="toggleSearchDropdown('brand')"
+                                @keydown.enter.prevent="toggleSearchDropdown('brand')"
+                                @keydown.space.prevent="toggleSearchDropdown('brand')"
+                                @keydown.esc="isSearchDropdownOpen.brand = false"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="isSearchDropdownOpen.brand"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih merk mobil"
+                                class="h-16 flex items-center px-6 cursor-pointer hover:bg-lime-50/50 rounded-[1.5rem] lg:rounded-l-[1.5rem] lg:rounded-r-none transition-colors group focus:outline-none focus:ring-2 focus:ring-lime-400 focus:ring-inset"
+                            >
                                 <div class="w-10 h-10 rounded-full bg-lime-100 text-lime-700 flex items-center justify-center mr-4 transition-transform group-hover:scale-110">
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 7h-3V6a4 4 0 00-8 0v1H5a3 3 0 00-3 3v7a3 3 0 003 3h14a3 3 0 003-3V10a3 3 0 00-3-3zm-4-1V6a2 2 0 00-4 0v1h4zm5 10a1 1 0 01-1 1H5a1 1 0 01-1-1v-7a1 1 0 011-1h14a1 1 0 011 1v7z"/></svg>
                                 </div>
@@ -305,13 +434,39 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
                                 </div>
                                 <svg class="w-4 h-4 text-gray-400 transition-transform" :class="isSearchDropdownOpen.brand ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </div>
-                            <div v-if="isSearchDropdownOpen.brand" class="absolute top-full left-0 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 max-h-64 overflow-y-auto z-50">
-                                <div v-for="opt in brandOptions" :key="opt" @click="selectSearchOption('brand', opt)" class="px-5 py-3 hover:bg-lime-50 cursor-pointer font-medium text-slate-600 flex justify-between">{{ opt }} <span v-if="searchForm.brand === opt" class="text-lime-600">✓</span></div>
+                            <div
+                                v-if="isSearchDropdownOpen.brand"
+                                ref="searchBrandListRef"
+                                role="listbox"
+                                aria-label="Daftar merk mobil"
+                                class="absolute top-full left-0 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 max-h-64 overflow-y-auto z-50"
+                            >
+                                <div
+                                    v-for="(opt, idx) in brandOptions"
+                                    :key="opt"
+                                    role="option"
+                                    :aria-selected="searchForm.brand === opt"
+                                    tabindex="0"
+                                    @click="selectSearchOption('brand', opt)"
+                                    @keydown="handleDropdownKeydown($event, 'brand', brandOptions)"
+                                    class="px-5 py-3 hover:bg-lime-50 focus:bg-lime-50 focus:outline-none cursor-pointer font-medium text-slate-600 flex justify-between"
+                                >{{ opt }} <span v-if="searchForm.brand === opt" class="text-lime-600">✓</span></div>
                             </div>
                         </div>
 
                         <div class="relative flex-1 search-dropdown-trigger">
-                            <div @click.stop="toggleSearchDropdown('domicile')" class="h-16 flex items-center px-6 cursor-pointer hover:bg-blue-50/50 transition-colors group">
+                            <div
+                                @click.stop="toggleSearchDropdown('domicile')"
+                                @keydown.enter.prevent="toggleSearchDropdown('domicile')"
+                                @keydown.space.prevent="toggleSearchDropdown('domicile')"
+                                @keydown.esc="isSearchDropdownOpen.domicile = false"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="isSearchDropdownOpen.domicile"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih area lokasi"
+                                class="h-16 flex items-center px-6 cursor-pointer hover:bg-blue-50/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-inset"
+                            >
                                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-4 transition-transform group-hover:scale-110">
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
                                 </div>
@@ -321,8 +476,23 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
                                 </div>
                                 <svg class="w-4 h-4 text-gray-400 transition-transform" :class="isSearchDropdownOpen.domicile ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </div>
-                            <div v-if="isSearchDropdownOpen.domicile" class="absolute top-full left-0 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 max-h-64 overflow-y-auto z-50">
-                                <div v-for="opt in domicileOptions" :key="opt" @click="selectSearchOption('domicile', opt)" class="px-5 py-3 hover:bg-blue-50 cursor-pointer font-medium text-slate-600 flex justify-between">{{ opt }} <span v-if="searchForm.domicile === opt" class="text-blue-600">✓</span></div>
+                            <div
+                                v-if="isSearchDropdownOpen.domicile"
+                                ref="searchDomicileListRef"
+                                role="listbox"
+                                aria-label="Daftar area lokasi"
+                                class="absolute top-full left-0 mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 max-h-64 overflow-y-auto z-50"
+                            >
+                                <div
+                                    v-for="(opt, idx) in domicileOptions"
+                                    :key="opt"
+                                    role="option"
+                                    :aria-selected="searchForm.domicile === opt"
+                                    tabindex="0"
+                                    @click="selectSearchOption('domicile', opt)"
+                                    @keydown="handleDropdownKeydown($event, 'domicile', domicileOptions)"
+                                    class="px-5 py-3 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none cursor-pointer font-medium text-slate-600 flex justify-between"
+                                >{{ opt }} <span v-if="searchForm.domicile === opt" class="text-blue-600">✓</span></div>
                             </div>
                         </div>
 
@@ -377,35 +547,40 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
                 <div class="flex justify-between items-end mb-8">
                     <div>
                         <h2 class="text-2xl lg:text-3xl font-bold text-slate-900">Rekomendasi Terdekat</h2>
-                        <p class="text-slate-500 mt-1 text-sm">Berdasarkan lokasi Anda saat ini</p>
+                        <!-- FIX #5: penjelasan singkat kapan hasil ini berdasarkan GPS vs filter area yang dipilih -->
+                        <p class="text-slate-500 mt-1 text-sm">
+                            <span v-if="searchForm.domicile">Difilter untuk area <span class="font-semibold text-slate-700">{{ searchForm.domicile }}</span>, diurutkan dari jarak terdekat</span>
+                            <span v-else>Berdasarkan lokasi Anda saat ini</span>
+                        </p>
                     </div>
                     <Link href="/map-results" class="text-lime-700 font-bold text-sm hover:text-lime-800 hover:underline">Lihat Semua</Link>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div v-if="recommendedStations.length === 0" class="col-span-full text-center py-10 text-gray-500">
-                        Belum ada stasiun pengisian terdaftar di area ini. 
+                        Belum ada stasiun pengisian terdaftar di area ini.
                         <br><span class="text-xs">(Pastikan Controller Laravel telah mengirim data 'stations')</span>
                     </div>
-                    
-                    <div v-else v-for="station in recommendedStations" :key="station.id" 
+
+                    <div v-else v-for="station in recommendedStations" :key="station.id"
                         @click="selectRecommendedStation(station)"
                         class="group bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer relative overflow-hidden">
-                        
+
                         <div class="absolute inset-0 bg-lime-50 opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
 
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="p-3 bg-lime-50 rounded-2xl text-lime-700 group-hover:bg-[#CCFF00] group-hover:text-black transition-colors shadow-sm">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                             </div>
-                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
-                                {{ station.status || 'Tersedia' }}
+                            <!-- FIX #2: warna badge kini mengikuti status sebenarnya, bukan statis hijau -->
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" :class="station.statusClasses">
+                                {{ station.statusLabel }}
                             </span>
                         </div>
-                        
+
                         <h3 class="text-lg font-bold text-slate-900 mb-1 relative z-10 truncate">{{ station.name }}</h3>
                         <p class="text-slate-500 text-xs mb-4 relative z-10 truncate">{{ station.address || station.location }}</p>
-                        
+
                         <div class="flex items-center gap-4 text-xs font-medium text-slate-600 mb-6 relative z-10">
                             <div class="flex items-center gap-1">
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -432,38 +607,69 @@ onBeforeUnmount(() => document.removeEventListener('click', closeAllDropdowns));
 
         <!-- SETUP POPUP -->
         <Transition name="modal-fade">
-            <div v-if="showSetupPopup" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity"></div>
+            <div v-if="showSetupPopup" class="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="setup-popup-title">
+                <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" @click="skipSetup"></div>
                 <div class="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 transform transition-all">
+                    <!-- FIX #4: tombol tutup / "Nanti saja" agar popup tidak wajib diisi langsung -->
+                    <button
+                        @click="skipSetup"
+                        type="button"
+                        aria-label="Tutup dan isi nanti"
+                        class="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+
                     <div class="text-center mb-6">
                         <div class="w-16 h-16 bg-[#CCFF00] rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-[0_10px_20px_rgba(204,255,0,0.4)]">
                             <svg class="w-8 h-8 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 01 1 1v5m-4 0h4"/></svg>
                         </div>
-                        <h2 class="text-2xl font-bold text-slate-900">Setup Profil</h2>
-                        <p class="text-slate-500 mt-2 text-sm">Lengkapi data kendaraan Anda.</p>
+                        <h2 id="setup-popup-title" class="text-2xl font-bold text-slate-900">Setup Profil</h2>
+                        <p class="text-slate-500 mt-2 text-sm">Lengkapi data kendaraan Anda agar estimasi jarak lebih akurat.</p>
                     </div>
                     <form @submit.prevent="submitSetup" class="space-y-4">
                         <div class="relative popup-dropdown-trigger">
-                            <div @click.stop="popupState.openBrand = !popupState.openBrand; popupState.openSeries = false" class="p-4 bg-gray-50 rounded-xl flex justify-between items-center cursor-pointer hover:bg-lime-50 border border-transparent hover:border-lime-200 transition-colors">
+                            <div
+                                @click.stop="popupState.openBrand = !popupState.openBrand; popupState.openSeries = false"
+                                @keydown.enter.prevent="popupState.openBrand = !popupState.openBrand"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="popupState.openBrand"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih merk mobil"
+                                class="p-4 bg-gray-50 rounded-xl flex justify-between items-center cursor-pointer hover:bg-lime-50 border border-transparent hover:border-lime-200 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+                            >
                                 <span :class="setupForm.brand ? 'text-slate-900 font-semibold' : 'text-gray-400'">{{ setupForm.brand || 'Pilih Merk Mobil' }}</span>
                                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </div>
-                            <div v-if="popupState.openBrand" class="absolute z-50 top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto">
-                                <div v-for="b in brandOptions" :key="b" @click="selectSetupBrand(b)" class="p-3 hover:bg-lime-50 cursor-pointer text-slate-600 font-medium">{{ b }}</div>
+                            <div v-if="popupState.openBrand" role="listbox" aria-label="Daftar merk mobil" class="absolute z-50 top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto">
+                                <div v-for="b in brandOptions" :key="b" role="option" :aria-selected="setupForm.brand === b" tabindex="0" @click="selectSetupBrand(b)" @keydown.enter="selectSetupBrand(b)" class="p-3 hover:bg-lime-50 focus:bg-lime-50 focus:outline-none cursor-pointer text-slate-600 font-medium">{{ b }}</div>
                             </div>
                         </div>
                         <div v-if="setupForm.brand" class="relative popup-dropdown-trigger">
-                             <div @click.stop="popupState.openSeries = !popupState.openSeries; popupState.openBrand = false" class="p-4 bg-gray-50 rounded-xl flex justify-between items-center cursor-pointer hover:bg-lime-50 border border-transparent hover:border-lime-200 transition-colors">
+                             <div
+                                @click.stop="popupState.openSeries = !popupState.openSeries; popupState.openBrand = false"
+                                @keydown.enter.prevent="popupState.openSeries = !popupState.openSeries"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="popupState.openSeries"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih tipe mobil"
+                                class="p-4 bg-gray-50 rounded-xl flex justify-between items-center cursor-pointer hover:bg-lime-50 border border-transparent hover:border-lime-200 transition-colors focus:outline-none focus:ring-2 focus:ring-lime-400"
+                            >
                                 <span :class="setupForm.series ? 'text-slate-900 font-semibold' : 'text-gray-400'">{{ setupForm.series || 'Pilih Tipe Mobil' }}</span>
                                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </div>
-                             <div v-if="popupState.openSeries" class="absolute z-50 top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto">
-                                <div v-for="s in setupSeriesOptions" :key="s" @click="selectSetupSeries(s)" class="p-3 hover:bg-lime-50 cursor-pointer text-slate-600 font-medium">{{ s }}</div>
+                             <div v-if="popupState.openSeries" role="listbox" aria-label="Daftar tipe mobil" class="absolute z-50 top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto">
+                                <div v-for="s in setupSeriesOptions" :key="s" role="option" :aria-selected="setupForm.series === s" tabindex="0" @click="selectSetupSeries(s)" @keydown.enter="selectSetupSeries(s)" class="p-3 hover:bg-lime-50 focus:bg-lime-50 focus:outline-none cursor-pointer text-slate-600 font-medium">{{ s }}</div>
                             </div>
                         </div>
-                        <input type="text" v-model="setupForm.plateNumber" placeholder="PLAT NOMOR" class="w-full p-4 bg-gray-50 rounded-xl text-slate-900 placeholder-gray-400 font-bold focus:outline-none focus:ring-2 focus:ring-[#CCFF00] uppercase border border-transparent tracking-widest text-center">
+                        <input type="text" v-model="setupForm.plateNumber" placeholder="PLAT NOMOR" aria-label="Plat nomor kendaraan" class="w-full p-4 bg-gray-50 rounded-xl text-slate-900 placeholder-gray-400 font-bold focus:outline-none focus:ring-2 focus:ring-[#CCFF00] uppercase border border-transparent tracking-widest text-center">
                         <button type="submit" :disabled="setupForm.processing" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition">
                             {{ setupForm.processing ? 'Menyimpan...' : 'Simpan & Lanjutkan' }}
+                        </button>
+                        <button type="button" @click="skipSetup" class="w-full text-center text-sm font-semibold text-slate-400 hover:text-slate-600 py-2 transition-colors">
+                            Nanti saja
                         </button>
                     </form>
                 </div>
@@ -484,7 +690,7 @@ input[type=range]::-webkit-slider-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #0f172a; 
+  background: #0f172a;
   cursor: pointer;
   margin-top: -8px;
   box-shadow: 0 0 0 4px white, 0 4px 10px rgba(0,0,0,0.3);

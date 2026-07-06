@@ -141,6 +141,10 @@ class BookingController extends Controller
     // POST /booking
     // Simpan booking baru + buat transaksi ke Paymentku (QRIS default)
     // ──────────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // POST /booking
+    // Simpan booking baru + buat transaksi ke Paymentku (QRIS default)
+    // ──────────────────────────────────────────────────────────────────────────
     public function store(Request $request)
     {
         $duration = (int) filter_var($request->duration, FILTER_SANITIZE_NUMBER_INT);
@@ -188,7 +192,16 @@ class BookingController extends Controller
                 ]);
             }
 
+            // 1. Definisikan waktu booking
             $bookingDateTime = Carbon::parse($today . ' ' . $bookingSlot, 'Asia/Jakarta');
+
+            // 2. TAMBAHAN VALIDASI: Tolak jika jam booking sudah lewat dari jam sekarang
+            if ($bookingDateTime->lt(Carbon::now('Asia/Jakarta'))) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'booking_slot' => 'Maaf, waktu untuk slot jam ' . $bookingSlot . ' sudah lewat. Silakan pilih jam lain.',
+                ]);
+            }
+
             $endDateTime     = $bookingDateTime->copy()->addMinutes($duration);
             $bookingCode     = 'EV-' . strtoupper(substr(uniqid(), -6)) . '-' . date('Ymd');
 
@@ -234,12 +247,11 @@ class BookingController extends Controller
             $phone = Auth::user()->nomor_telepon ?? Auth::user()->phone ?? Auth::user()->no_hp ?? null;
             if ($phone) $payload['customer_phone'] = $phone;
 
-            // PERBAIKAN 1: Ambil langsung dari env() agar tidak null
             $secretKey = env('PAYMENKU_SECRET_KEY'); 
 
             $response = Http::timeout(15)
                 ->withHeaders([
-                    'Authorization' => 'Bearer ' . $secretKey, // <-- Gunakan variabel $secretKey
+                    'Authorization' => 'Bearer ' . $secretKey,
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ])
@@ -274,10 +286,9 @@ class BookingController extends Controller
                 'body'   => $response->body(),
             ]);
 
-            // PERBAIKAN 2: Tampilkan pesan error asli dari API Paymenku ke layar Vue!
             Booking::where('booking_code', $bookingCode)->update(['status' => 'Gagal Bayar']);
             return response()->json([
-                'message' => 'Error API Paymenku: ' . $response->body(), // <-- Ini akan memunculkan alasan aslinya
+                'message' => 'Error API Paymenku: ' . $response->body(),
                 'booking_code' => $bookingCode,
             ], 500);
 
@@ -291,7 +302,6 @@ class BookingController extends Controller
             ], 500);
         }
     }
-
     // ──────────────────────────────────────────────────────────────────────────
     // POST /paymentku/webhook
     // Verifikasi: X-PaymenKu-Signature = hmac_sha256(timestamp + "." + body, secret)
@@ -301,7 +311,7 @@ class BookingController extends Controller
         $jsonContent     = $request->getContent();
         $timestamp       = $request->header('X-PaymenKu-Timestamp') ?? '';
         $signatureHeader = $request->header('X-PaymenKu-Signature') ?? '';
-        $mySignature     = hash_hmac('sha256', $timestamp . '.' . $jsonContent, config('services.paymentku.webhook_secret'));
+        $mySignature = hash_hmac('sha256', $timestamp . '.' . $jsonContent, env('PAYMENKU_WEBHOOK_SECRET'));
 
         if (!hash_equals($mySignature, $signatureHeader)) {
             Log::warning('Webhook Paymentku: Signature tidak valid!', [

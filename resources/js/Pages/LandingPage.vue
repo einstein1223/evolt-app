@@ -58,19 +58,19 @@ const services = [
 ];
 
 const contactData = {
-    phone: '+62 812 3456 7890',
-    email: 'hello@evolt.id',
+    phone: '+62 812 7835 396',
+    email: 'evoltidn@gmail.com',
     address: 'Jl. Ahmad Yani Batam Kota,\nKota Batam, Kepulauan Riau,\nIndonesia',
 };
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col bg-slate-50/50 font-sans text-slate-800 overflow-x-hidden selection:bg-[#CCFF00] selection:text-slate-900 scroll-smooth relative">
+    <div class="min-h-screen flex flex-col bg-slate-50/50 font-sans text-slate-800 overflow-x-hidden selection:bg-lime-400 selection:text-slate-900 scroll-smooth relative">
 
         <!-- Ambient BG -->
         <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] rounded-full bg-[#CCFF00] opacity-25 blur-[150px]"></div>
-            <div class="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/4 w-[500px] h-[500px] rounded-full bg-[#CCFF00] opacity-20 blur-[150px]"></div>
+            <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] rounded-full bg-lime-400 opacity-10 blur-[150px]"></div>
+            <div class="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/4 w-[500px] h-[500px] rounded-full bg-lime-400 opacity-8 blur-[150px]"></div>
             <div class="absolute bottom-0 right-0 translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] rounded-full bg-white opacity-60 blur-[150px]"></div>
         </div>
 
@@ -80,15 +80,15 @@ const contactData = {
 
                 <!-- Logo -->
                 <Link href="/" class="text-2xl font-bold tracking-tight">
-                    <span class="text-[#00C853]">E-</span><span class="text-slate-900">VOLT</span>
+                    <span class="text-lime-600">E-</span><span class="text-slate-900">VOLT</span>
                 </Link>
 
                 <!-- Desktop Nav -->
                 <nav class="hidden md:flex items-center gap-10 text-slate-700 font-medium text-sm">
-                    <Link :href="route('welcome')" class="hover:text-[#00C853] transition">Beranda</Link>
-                    <button @click="scrollToSection('cara-kerja')" class="hover:text-[#00C853] transition">Cara Kerja</button>
-                    <button @click="scrollToSection('paket')" class="hover:text-[#00C853] transition">Paket</button>
-                    <button @click="scrollToSection('kontak')" class="hover:text-[#00C853] transition">Kontak</button>
+                    <Link :href="route('welcome')" class="hover:text-lime-600 transition">Beranda</Link>
+                    <button @click="scrollToSection('cara-kerja')" class="hover:text-lime-600 transition">Cara Kerja</button>
+                    <button @click="scrollToSection('paket')" class="hover:text-lime-600 transition">Paket</button>
+                    <button @click="scrollToSection('kontak')" class="hover:text-lime-600 transition">Kontak</button>
                 </nav>
 
                 <!-- Desktop CTA -->
@@ -97,21 +97,21 @@ const contactData = {
                         <Link :href="getDashboardRoute()" class="flex items-center gap-3 group">
                             <div class="text-right">
                                 <p class="text-xs text-gray-500">Halo,</p>
-                                <p class="font-bold text-gray-900 group-hover:text-[#00C853] transition-colors text-sm">{{ user.username }}</p>
+                                <p class="font-bold text-gray-900 group-hover:text-lime-600 transition-colors text-sm">{{ user.username }}</p>
                             </div>
-                            <div class="w-10 h-10 rounded-full bg-[#00C853] text-white flex items-center justify-center font-bold shadow-sm">
+                            <div class="w-10 h-10 rounded-full bg-lime-600 text-white flex items-center justify-center font-bold shadow-sm">
                                 {{ user.username.charAt(0).toUpperCase() }}
                             </div>
                         </Link>
                     </template>
                     <template v-else>
-                        <Link :href="route('login')" class="text-sm font-semibold text-slate-700 hover:text-[#00C853] transition px-4 py-2">Masuk</Link>
+                        <Link :href="route('login')" class="text-sm font-semibold text-slate-700 hover:text-lime-600 transition px-4 py-2">Masuk</Link>
                         <Link :href="route('register')" class="text-sm font-bold bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition shadow-sm">Daftar Gratis</Link>
                     </template>
                 </div>
 
                 <!-- Hamburger -->
-                <button @click="isMenuOpen = !isMenuOpen" class="md:hidden text-slate-700 hover:text-[#00C853] transition ml-4" aria-label="Menu">
+                <button @click="isMenuOpen = !isMenuOpen" class="md:hidden text-slate-700 hover:text-lime-600 transition ml-4" aria-label="Menu">
                     <svg v-if="!isMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -128,14 +128,14 @@ const contactData = {
                 <div v-if="isMenuOpen" class="md:hidden absolute top-full left-0 right-0 z-40">
                     <div class="bg-white shadow-lg border-t border-gray-100 rounded-b-2xl mx-4 p-4">
                         <nav class="flex flex-col gap-1 text-slate-700 font-medium text-sm">
-                            <Link :href="route('welcome')" @click="isMenuOpen = false" class="px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-[#00C853] transition">Beranda</Link>
-                            <button @click="scrollToSection('cara-kerja')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-[#00C853] transition">Cara Kerja</button>
-                            <button @click="scrollToSection('paket')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-[#00C853] transition">Paket</button>
-                            <button @click="scrollToSection('kontak')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-[#00C853] transition">Kontak</button>
+                            <Link :href="route('welcome')" @click="isMenuOpen = false" class="px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-lime-600 transition">Beranda</Link>
+                            <button @click="scrollToSection('cara-kerja')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-lime-600 transition">Cara Kerja</button>
+                            <button @click="scrollToSection('paket')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-lime-600 transition">Paket</button>
+                            <button @click="scrollToSection('kontak')" class="text-left px-3 py-2.5 rounded-lg hover:bg-lime-50 hover:text-lime-600 transition">Kontak</button>
                             <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
                                 <template v-if="user">
                                     <Link :href="getDashboardRoute()" @click="isMenuOpen = false" class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-lime-50 transition">
-                                        <div class="w-8 h-8 rounded-full bg-[#00C853] text-white flex items-center justify-center font-bold text-sm">
+                                        <div class="w-8 h-8 rounded-full bg-lime-600 text-white flex items-center justify-center font-bold text-sm">
                                             {{ user.username.charAt(0).toUpperCase() }}
                                         </div>
                                         <div>
@@ -145,7 +145,7 @@ const contactData = {
                                     </Link>
                                 </template>
                                 <template v-else>
-                                    <Link :href="route('login')" @click="isMenuOpen = false" class="text-center py-2.5 font-semibold border-2 border-[#00C853] text-[#00C853] rounded-xl hover:bg-[#00C853] hover:text-white transition">Masuk</Link>
+                                    <Link :href="route('login')" @click="isMenuOpen = false" class="text-center py-2.5 font-semibold border-2 border-lime-600 text-lime-600 rounded-xl hover:bg-lime-600 hover:text-white transition">Masuk</Link>
                                     <Link :href="route('register')" @click="isMenuOpen = false" class="text-center py-2.5 font-bold bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition">Daftar Gratis</Link>
                                 </template>
                             </div>
@@ -158,27 +158,27 @@ const contactData = {
         <main class="flex-grow relative z-10">
 
             <!-- ─── HERO ──────────────────────────────────── -->
-            <section class="relative z-20 bg-[#CCFF00] rounded-b-[3rem] lg:rounded-b-[5rem] overflow-hidden shadow-sm">
-                <div class="absolute inset-0 opacity-15 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-multiply"></div>
+            <section class="relative z-20 bg-white bg-[radial-gradient(circle_at_20%_20%,#ecfccb_0%,transparent_40%),radial-gradient(circle_at_90%_90%,#d9f99d_0%,transparent_40%)] overflow-hidden shadow-sm">
+                <div class="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-multiply"></div>
                 <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-36 pb-24 lg:pt-48 lg:pb-40 relative">
                     <div class="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
                         <div class="w-full lg:w-1/2 text-center lg:text-left z-20 reveal">
                             <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/5 border border-slate-900/10 mb-8 animate-fade-in-up backdrop-blur-sm">
-                                <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-900 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-900"></span></span>
-                                <span class="text-xs font-bold uppercase tracking-widest text-slate-900/80">Solusi Energi Masa Depan</span>
+                                <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-600 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-600"></span></span>
+                                <span class="text-xs font-bold uppercase tracking-widest text-slate-700">Solusi Energi Masa Depan</span>
                             </div>
                             <h1 class="flex flex-col font-black text-slate-900 tracking-tight mb-8">
                                 <span class="text-5xl sm:text-6xl lg:text-[5rem] leading-[1.1]">Pengendara</span>
                                 <span class="text-5xl sm:text-6xl lg:text-[5rem] leading-[1.1] mt-2 lg:mt-3">Cerdas,</span>
-                                <span class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800/70 mt-4 lg:mt-6">Stasiun Pintar.</span>
+                                <span class="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-600 mt-4 lg:mt-6">Stasiun Pintar.</span>
                             </h1>
-                            <p class="text-lg sm:text-xl text-slate-800/80 font-medium mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">Ekosistem pengisian daya kendaraan listrik terintegrasi. Temukan, reservasi, dan isi daya dalam satu genggaman.</p>
+                            <p class="text-lg sm:text-xl text-slate-600 font-medium mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">Ekosistem pengisian daya kendaraan listrik terintegrasi. Temukan, reservasi, dan isi daya dalam satu genggaman.</p>
                             <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                                 <Link href="/register" class="group relative inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-300 bg-slate-900 rounded-2xl hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1 focus:ring-4 focus:ring-slate-900/20">
                                     Mulai Sekarang
                                     <svg class="w-5 h-5 ml-2 -mr-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                                 </Link>
-                                <button @click="scrollToSection('paket')" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-slate-900 transition-all duration-300 bg-white/40 border-2 border-slate-900/10 rounded-2xl hover:bg-white hover:border-white hover:shadow-xl focus:ring-4 focus:ring-white/40 backdrop-blur-sm">
+                                <button @click="scrollToSection('paket')" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-slate-900 transition-all duration-300 bg-white border-2 border-slate-200 rounded-2xl hover:border-lime-400 hover:shadow-xl focus:ring-4 focus:ring-lime-100">
                                     Lihat Paket
                                 </button>
                             </div>
@@ -266,32 +266,32 @@ const contactData = {
             <!-- ─── EV PEDIA ───────────────────────────────── -->
             <section class="py-24 bg-slate-900 relative overflow-hidden z-20">
                 <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div class="absolute -top-24 -right-24 w-96 h-96 bg-[#CCFF00] rounded-full blur-[150px] opacity-10"></div>
+                <div class="absolute -top-24 -right-24 w-96 h-96 bg-lime-400 rounded-full blur-[150px] opacity-5"></div>
                 <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
                     <div class="flex flex-col lg:flex-row items-center justify-between gap-16 reveal">
                         <div class="w-full lg:w-1/2 text-center lg:text-left text-white">
-                            <span class="text-[#CCFF00] font-bold tracking-[0.2em] uppercase text-xs bg-[#CCFF00]/10 px-4 py-2 rounded-full mb-8 inline-block border border-[#CCFF00]/20">Pusat Pengetahuan</span>
-                            <h2 class="text-4xl lg:text-6xl font-black mb-6 leading-tight">Baru Punya <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-[#CCFF00] to-lime-500">Mobil Listrik?</span></h2>
+                            <span class="text-lime-400 font-bold tracking-[0.2em] uppercase text-xs bg-lime-400/10 px-4 py-2 rounded-full mb-8 inline-block border border-lime-400/20">Pusat Pengetahuan</span>
+                            <h2 class="text-4xl lg:text-6xl font-black mb-6 leading-tight">Baru Punya <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-lime-500">Mobil Listrik?</span></h2>
                             <p class="text-slate-400 text-lg mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">Bingung bedanya CCS2 dan CHAdeMO? E-VOLT Pedia hadir sebagai panduan lengkap Anda.</p>
-                            <Link href="/ev-pedia" class="inline-flex items-center bg-[#CCFF00] text-slate-900 font-bold px-8 py-4 rounded-2xl hover:bg-white transition-all duration-300 hover:-translate-y-1 shadow-[0_0_25px_rgba(204,255,0,0.3)]">
+                            <Link href="/ev-pedia" class="inline-flex items-center bg-lime-400 text-slate-900 font-bold px-8 py-4 rounded-2xl hover:bg-white transition-all duration-300 hover:-translate-y-1 shadow-[0_0_25px_rgba(163,230,53,0.3)]">
                                 Jelajahi Pedia
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                             </Link>
                         </div>
                         <div class="w-full lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-[#CCFF00]/30 transition-all duration-300 group hover:-translate-y-2">
+                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-lime-400/30 transition-all duration-300 group hover:-translate-y-2">
                                 <div class="text-4xl mb-6">🚗</div>
-                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-[#CCFF00] transition">Katalog Mobil</h3>
+                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-lime-400 transition">Katalog Mobil</h3>
                                 <p class="text-slate-400 text-sm">Cek spek baterai & jarak tempuh.</p>
                             </Link>
-                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-[#CCFF00]/30 transition-all duration-300 group mt-0 sm:mt-12 hover:-translate-y-2">
+                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-lime-400/30 transition-all duration-300 group mt-0 sm:mt-12 hover:-translate-y-2">
                                 <div class="text-4xl mb-6">🔌</div>
-                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-[#CCFF00] transition">Tipe Charger</h3>
+                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-lime-400 transition">Tipe Charger</h3>
                                 <p class="text-slate-400 text-sm">Pahami bedanya AC Type 2, CCS2.</p>
                             </Link>
-                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-[#CCFF00]/30 transition-all duration-300 group hover:-translate-y-2 sm:col-span-2 lg:col-span-1">
+                            <Link href="/ev-pedia" class="bg-white/5 p-8 rounded-[2rem] border border-white/5 hover:bg-white/10 hover:border-lime-400/30 transition-all duration-300 group hover:-translate-y-2 sm:col-span-2 lg:col-span-1">
                                 <div class="text-4xl mb-6">💡</div>
-                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-[#CCFF00] transition">Tips & Trik</h3>
+                                <h3 class="text-white font-bold text-xl mb-2 group-hover:text-lime-400 transition">Tips & Trik</h3>
                                 <p class="text-slate-400 text-sm">Cara agar baterai awet & hemat.</p>
                             </Link>
                         </div>
@@ -327,23 +327,23 @@ const contactData = {
                 <div class="max-w-7xl mx-auto px-6">
 
                     <div class="text-center mb-16 reveal">
-                        <span class="bg-[#CCFF00] text-slate-900 px-4 py-1.5 rounded-full text-sm font-bold tracking-wider uppercase mb-6 inline-block">Peluang Emas</span>
+                        <span class="bg-lime-400 text-slate-900 px-4 py-1.5 rounded-full text-sm font-bold tracking-wider uppercase mb-6 inline-block">Peluang Emas</span>
                         <h2 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 leading-tight">Paket <span class="text-lime-600">Bundle Mitra</span></h2>
                         <p class="text-slate-500 text-xl max-w-xl mx-auto">Pilih paket sesuai kebutuhan — hunian atau komersial.</p>
                     </div>
 
                     <!-- Stats -->
-                    <div class="grid grid-cols-3 gap-6 text-center divide-x divide-gray-200 bg-white/90 backdrop-blur-sm rounded-[2rem] p-10 border border-gray-100 shadow-xl mb-20 reveal delay-100">
-                        <div><div class="text-5xl font-black text-lime-500 mb-2">+45%</div><p class="text-lg font-bold text-slate-900">Pertumbuhan EV</p></div>
-                        <div><div class="text-5xl font-black text-lime-500 mb-2">24/7</div><p class="text-lg font-bold text-slate-900">Passive Income</p></div>
-                        <div><div class="text-5xl font-black text-lime-500 mb-2">0%</div><p class="text-lg font-bold text-slate-900">Biaya Franchise</p></div>
+                    <div class="grid grid-cols-3 gap-2 sm:gap-6 text-center divide-x divide-gray-200 bg-white/90 backdrop-blur-sm rounded-[2rem] p-5 sm:p-10 border border-gray-100 shadow-xl mb-20 reveal delay-100">
+                        <div class="px-1"><div class="text-2xl sm:text-4xl lg:text-5xl font-black text-lime-500 mb-1 sm:mb-2 whitespace-nowrap">+45%</div><p class="text-xs sm:text-base lg:text-lg font-bold text-slate-900 leading-tight">Pertumbuhan EV</p></div>
+                        <div class="px-1"><div class="text-2xl sm:text-4xl lg:text-5xl font-black text-lime-500 mb-1 sm:mb-2 whitespace-nowrap">24/7</div><p class="text-xs sm:text-base lg:text-lg font-bold text-slate-900 leading-tight">Passive Income</p></div>
+                        <div class="px-1"><div class="text-2xl sm:text-4xl lg:text-5xl font-black text-lime-500 mb-1 sm:mb-2 whitespace-nowrap">0%</div><p class="text-xs sm:text-base lg:text-lg font-bold text-slate-900 leading-tight">Biaya Franchise</p></div>
                     </div>
 
                     <!-- 2 Package Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto reveal delay-200">
 
                         <!-- HOME -->
-                        <div class="bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 border border-gray-200 hover:border-[#00C853] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                        <div class="bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 border border-gray-200 hover:border-lime-600 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
                             <div class="flex items-start justify-between mb-6">
                                 <div>
                                     <span class="text-xs font-bold uppercase tracking-widest text-lime-600 bg-lime-50 px-3 py-1 rounded-full">Hunian</span>
@@ -382,14 +382,14 @@ const contactData = {
 
                         <!-- COMMERCIAL -->
                         <div class="bg-slate-900 rounded-[2rem] p-8 border border-slate-800 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col relative overflow-hidden">
-                            <div class="absolute top-0 right-0 bg-[#CCFF00] text-slate-900 text-xs font-bold px-4 py-2 rounded-bl-2xl tracking-wide">FAST CHARGING</div>
+                            <div class="absolute top-0 right-0 bg-lime-400 text-slate-900 text-xs font-bold px-4 py-2 rounded-bl-2xl tracking-wide">FAST CHARGING</div>
                             <div class="flex items-start justify-between mb-6">
                                 <div>
-                                    <span class="text-xs font-bold uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-3 py-1 rounded-full">Komersial</span>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-lime-400 bg-lime-400/10 border border-lime-400/20 px-3 py-1 rounded-full">Komersial</span>
                                     <h3 class="text-2xl font-black text-white mt-3">Commercial Bundle</h3>
                                     <p class="text-gray-400 text-sm mt-1">DC Fast Charger untuk area publik.</p>
                                 </div>
-                                <div class="w-14 h-14 bg-[#CCFF00]/10 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">🏢</div>
+                                <div class="w-14 h-14 bg-lime-400/10 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">🏢</div>
                             </div>
                             <div class="bg-slate-800 p-6 rounded-2xl mb-6 flex-grow border border-slate-700">
                                 <h5 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Spesifikasi</h5>
@@ -402,19 +402,19 @@ const contactData = {
                             </div>
                             <div class="flex flex-col gap-2 mb-6">
                                 <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <svg class="w-4 h-4 text-[#CCFF00] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="w-4 h-4 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                     Dashboard OCPP terintegrasi
                                 </div>
                                 <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <svg class="w-4 h-4 text-[#CCFF00] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="w-4 h-4 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                     QRIS & E-Wallet otomatis
                                 </div>
                                 <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <svg class="w-4 h-4 text-[#CCFF00] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="w-4 h-4 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                     Garansi unit 3 tahun + support
                                 </div>
                             </div>
-                            <a :href="waLink('Saya tertarik paket Commercial Bundle DC Fast Charger')" class="block w-full py-4 rounded-xl bg-[#00C853] text-white font-bold text-center hover:bg-[#00a844] transition-all duration-300 shadow-lg shadow-green-900/20">
+                            <a :href="waLink('Saya tertarik paket Commercial Bundle DC Fast Charger')" class="block w-full py-4 rounded-xl bg-lime-600 text-white font-bold text-center hover:bg-lime-700 transition-all duration-300 shadow-lg shadow-green-900/20">
                                 Ambil Paket Ini
                             </a>
                         </div>
@@ -426,7 +426,7 @@ const contactData = {
             <!-- ─── CONTACT ────────────────────────────────── -->
             <section id="kontak" class="py-24 bg-slate-900 text-white relative overflow-hidden rounded-t-[4rem] z-20">
                 <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#CCFF00] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+                <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-lime-400 rounded-full blur-[150px] opacity-5 pointer-events-none"></div>
                 <div class="max-w-7xl mx-auto px-6 relative z-10">
                     <div class="text-center mb-16 reveal">
                         <h2 class="text-4xl md:text-5xl font-black mb-6">Mari Berkolaborasi</h2>
@@ -434,30 +434,20 @@ const contactData = {
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20 reveal">
                         <div class="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl text-center hover:bg-white/10 transition group">
-                            <div class="w-16 h-16 bg-[#00C853]/20 text-[#00C853] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📞</div>
+                            <div class="w-16 h-16 bg-lime-600/20 text-lime-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📞</div>
                             <h3 class="font-bold text-xl mb-2">Telepon</h3><p class="text-gray-400">{{ contactData.phone }}</p>
                         </div>
                         <div class="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl text-center hover:bg-white/10 transition group">
-                            <div class="w-16 h-16 bg-[#00C853]/20 text-[#00C853] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📧</div>
+                            <div class="w-16 h-16 bg-lime-600/20 text-lime-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📧</div>
                             <h3 class="font-bold text-xl mb-2">Email</h3><p class="text-gray-400">{{ contactData.email }}</p>
                         </div>
                         <div class="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl text-center hover:bg-white/10 transition group">
-                            <div class="w-16 h-16 bg-[#00C853]/20 text-[#00C853] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📍</div>
+                            <div class="w-16 h-16 bg-lime-600/20 text-lime-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">📍</div>
                             <h3 class="font-bold text-xl mb-2">Kantor</h3><p class="text-gray-400 whitespace-pre-line text-sm">{{ contactData.address }}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-[3rem] p-8 lg:p-12 shadow-2xl text-slate-900 reveal">
-                        <div class="grid lg:grid-cols-2 gap-12 items-center">
-                            <div>
-                                <h3 class="text-3xl font-bold mb-4">Kirim Pesan 👋</h3>
-                                <p class="text-gray-600 mb-8 leading-relaxed">Punya pertanyaan soal proses booking? Tim support kami biasanya membalas dalam <span class="font-bold">1x24 jam</span>.</p>
-                                <div class="bg-lime-50 p-6 rounded-2xl border border-lime-100">
-                                    <p class="text-lime-800 text-sm font-medium">💡 Tips: Jelaskan kebutuhan Anda sedetail mungkin.</p>
-                                </div>
-                            </div>
-                            <div class="bg-gray-50 rounded-2xl p-2"><ContactForm /></div>
-                        </div>
-                    </div>
+                    
+
                 </div>
             </section>
 

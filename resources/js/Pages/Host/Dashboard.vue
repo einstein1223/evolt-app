@@ -210,14 +210,14 @@ onBeforeUnmount(() => clearInterval(pollInterval));
         <header class="bg-white/80 backdrop-blur-md px-6 py-4 sticky top-0 z-50 border-b border-slate-100">
             <div class="max-w-6xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-[#00C853] shadow-lg shadow-slate-200">
+                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-lime-400 shadow-lg shadow-slate-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
                     </div>
                     <div>
                         <span class="text-xl font-black tracking-tight block leading-none">
-                            <span class="text-green-500">E-</span><span class="text-slate-900">VOLT</span>
+                            <span class="text-lime-600">E-</span><span class="text-slate-900">VOLT</span>
                         </span>
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Host Panel</span>
                     </div>
@@ -226,7 +226,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                 <div class="relative">
                     <button @click="toggleProfileMenu"
                         class="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-full pr-4 transition-all border border-transparent hover:border-slate-100">
-                        <div class="w-9 h-9 bg-gradient-to-tr from-lime-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
+                        <div class="w-9 h-9 bg-gradient-to-tr from-lime-400 to-lime-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
                             {{ userNameDisplay.charAt(0).toUpperCase() }}
                         </div>
                         <div class="text-left hidden sm:block">
@@ -275,7 +275,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                         <div class="absolute top-0 right-0 w-64 h-64 bg-lime-500 rounded-full filter blur-[80px] opacity-20 -mr-16 -mt-16 pointer-events-none"></div>
                         <div class="relative z-10 text-center md:text-left">
                             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-4">
-                                <span class="w-2 h-2 rounded-full" :class="isOpen ? 'bg-[#00C853] animate-pulse' : 'bg-red-500'"></span>
+                                <span class="w-2 h-2 rounded-full" :class="isOpen ? 'bg-lime-500 animate-pulse' : 'bg-red-500'"></span>
                                 <span class="text-xs font-bold uppercase tracking-wider">{{ isOpen ? 'Station Aktif' : 'Station Non-Aktif' }}</span>
                             </div>
                             <h1 class="text-3xl sm:text-4xl font-black mb-2">{{ station.name }}</h1>
@@ -294,7 +294,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <span>Tutup</span><span>Buka</span>
                                 </div>
                                 <div class="h-full w-1/2 rounded-full shadow-lg flex items-center justify-center transition-all duration-500"
-                                    :class="isOpen ? 'translate-x-full bg-[#00C853] shadow-green-900/20' : 'translate-x-0 bg-red-500 shadow-red-900/20'">
+                                    :class="isOpen ? 'translate-x-full bg-lime-500 shadow-lime-900/20' : 'translate-x-0 bg-red-500 shadow-red-900/20'">
                                     <i v-if="isToggling" class="fas fa-spinner fa-spin text-white"></i>
                                     <i v-else class="fas" :class="isOpen ? 'fa-check text-slate-900' : 'fa-times text-white'"></i>
                                 </div>
@@ -311,13 +311,13 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition group">
                                 <div class="flex justify-between items-start mb-4">
-                                    <div class="p-3 bg-lime-50 text-lime-600 rounded-2xl group-hover:bg-[#CCFF00] group-hover:text-slate-900 transition">
+                                    <div class="p-3 bg-lime-50 text-lime-600 rounded-2xl group-hover:bg-lime-400 group-hover:text-slate-900 transition">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     </div>
                                     <span class="text-xs font-bold px-2 py-1 rounded-lg"
-                                        :class="props.stats.growth >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'">
+                                        :class="props.stats.growth >= 0 ? 'text-lime-600 bg-lime-50' : 'text-red-600 bg-red-50'">
                                         {{ props.stats.growth >= 0 ? '+' : '' }}{{ props.stats.growth }}%
                                     </span>
                                 </div>
@@ -354,9 +354,9 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <p class="text-sm text-slate-400">Pendapatan 7 hari terakhir</p>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full"
-                                    :class="isRefreshing ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'">
+                                    :class="isRefreshing ? 'bg-amber-50 text-amber-600' : 'bg-lime-50 text-lime-600'">
                                     <span class="w-1.5 h-1.5 rounded-full"
-                                        :class="isRefreshing ? 'bg-amber-400 animate-pulse' : 'bg-green-400 animate-pulse'"></span>
+                                        :class="isRefreshing ? 'bg-amber-400 animate-pulse' : 'bg-lime-400 animate-pulse'"></span>
                                     {{ isRefreshing ? 'Memperbarui...' : (lastUpdated ? 'Update: ' + lastUpdated : 'Live') }}
                                 </div>
                             </div>
@@ -366,15 +366,15 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <defs>
                                         <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%"   stop-color="#a3e635"/>
-                                            <stop offset="100%" stop-color="#4ade80"/>
+                                            <stop offset="100%" stop-color="#65a30d"/>
                                         </linearGradient>
                                         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%"   stop-color="#a3e635" stop-opacity="0.25"/>
                                             <stop offset="100%" stop-color="#a3e635" stop-opacity="0"/>
                                         </linearGradient>
                                         <linearGradient id="todayGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%"   stop-color="#00C853"/>
-                                            <stop offset="100%" stop-color="#00a040"/>
+                                            <stop offset="0%"   stop-color="#65a30d"/>
+                                            <stop offset="100%" stop-color="#4d7c0f"/>
                                         </linearGradient>
                                     </defs>
                                     <line v-for="n in 4" :key="n" x1="0" :y1="(CHART_H/4)*n" :x2="CHART_W" :y2="(CHART_H/4)*n" stroke="#f1f5f9" stroke-width="1"/>
@@ -387,12 +387,12 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                             class="transition-all duration-700 cursor-pointer"
                                             @mouseenter="showTooltip($event, bar)" @mouseleave="hideTooltip"/>
                                         <circle v-if="bar.raw_value > 0" :cx="bar.x + bar.w/2" :cy="bar.y" r="4"
-                                            :fill="bar.is_today ? '#00C853' : '#84cc16'" stroke="white" stroke-width="2"/>
+                                            :fill="bar.is_today ? '#65a30d' : '#84cc16'" stroke="white" stroke-width="2"/>
                                         <text :x="bar.x + bar.w/2" :y="CHART_H+18" text-anchor="middle" font-size="11" font-weight="600"
-                                            :fill="bar.is_today ? '#00C853' : '#94a3b8'">{{ bar.day }}</text>
-                                        <text v-if="bar.is_today" :x="bar.x + bar.w/2" :y="CHART_H+32" text-anchor="middle" font-size="9" font-weight="700" fill="#00C853">Hari Ini</text>
+                                            :fill="bar.is_today ? '#65a30d' : '#94a3b8'">{{ bar.day }}</text>
+                                        <text v-if="bar.is_today" :x="bar.x + bar.w/2" :y="CHART_H+32" text-anchor="middle" font-size="9" font-weight="700" fill="#65a30d">Hari Ini</text>
                                         <text v-if="bar.raw_value > 0" :x="bar.x + bar.w/2" :y="bar.y - 8" text-anchor="middle" font-size="9" font-weight="700"
-                                            :fill="bar.is_today ? '#00C853' : '#64748b'">{{ formatShort(bar.raw_value) }}</text>
+                                            :fill="bar.is_today ? '#65a30d' : '#64748b'">{{ formatShort(bar.raw_value) }}</text>
                                     </g>
                                     <g v-if="tooltip.show && tooltip.item" style="pointer-events:none">
                                         <rect :x="tooltip.x - 52" :y="tooltip.y - 36" width="104" height="32" rx="8" fill="#0f172a"/>
@@ -434,7 +434,7 @@ onBeforeUnmount(() => clearInterval(pollInterval));
                                     <Link v-for="(guest, index) in props.recent_guests" :key="index"
                                         :href="guest.user_id ? route('host.guest.detail', guest.user_id) : '#'"
                                         class="group flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl transition border border-transparent hover:border-lime-200 cursor-pointer block">
-                                        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-lime-100 to-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-black text-sm group-hover:from-lime-200 transition-all">
+                                        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-lime-100 to-lime-200 text-lime-700 flex items-center justify-center flex-shrink-0 font-black text-sm group-hover:from-lime-200 group-hover:to-lime-300 transition-all">
                                             {{ guest.guest_name?.charAt(0)?.toUpperCase() ?? '?' }}
                                         </div>
                                         <div class="flex-grow min-w-0">
