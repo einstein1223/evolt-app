@@ -530,18 +530,47 @@ const qrUrl = (code) =>
                     <!-- Body scrollable -->
                     <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
-                        <!-- QR Code kode booking -->
-                        <div class="flex flex-col items-center bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                            <p class="text-xs text-gray-400 uppercase font-bold tracking-widest mb-3">Kode Booking</p>
-                            <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-200 mb-3">
-                                <img :src="qrUrl(selectedOrder.booking_number)"
-                                    :alt="selectedOrder.booking_number"
-                                    class="w-36 h-36 object-contain" />
+                        <!-- ==========================================
+                             BLOK KODE BOOKING & QR CODE
+                        =========================================== -->
+
+                        <!-- 1. JIKA SUDAH BAYAR (Lunas / Booked / Selesai) -->
+                        <div v-if="isPaid(selectedOrder.status)" class="text-center mb-6">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">KODE BOOKING</p>
+                            
+                            <div class="bg-white p-3 rounded-2xl inline-block shadow-sm border border-gray-200 mb-3">
+                                <img :src="qrUrl(selectedOrder.booking_number)" 
+                                     :alt="selectedOrder.booking_number" class="w-36 h-36 object-contain">
                             </div>
-                            <span class="font-mono font-black text-xl text-gray-800 tracking-widest">
-                                {{ selectedOrder.booking_number }}
-                            </span>
+                            
+                            <p class="font-mono font-black text-xl text-gray-800 tracking-widest">{{ selectedOrder.booking_number }}</p>
                             <p class="text-xs text-gray-400 mt-1">Tunjukkan QR ini kepada operator stasiun</p>
+                        </div>
+
+                        <!-- 2. JIKA MASIH MENUNGGU PEMBAYARAN -->
+                        <div v-else-if="['menunggu pembayaran', 'pending', 'booked'].includes((selectedOrder.status || '').toLowerCase())" class="text-center py-8 mb-6 bg-orange-50 rounded-2xl border border-orange-100">
+                            <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🕐</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-900 mb-1">Menunggu Pembayaran</h4>
+                            <p class="text-sm text-gray-500 px-6">
+                                Selesaikan pembayaran untuk memunculkan kode QR.
+                            </p>
+                            <div class="mt-4 inline-block bg-white px-4 py-2 border border-orange-200 rounded-lg">
+                                <span class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-0.5">Kode Transaksi</span>
+                                <span class="font-mono font-black text-gray-800 text-lg">{{ selectedOrder.booking_number }}</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. JIKA STATUS BATAL / GAGAL BAYAR -->
+                        <div v-else class="text-center py-8 mb-6 bg-red-50 rounded-2xl border border-red-100">
+                            <div class="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">❌</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-900 mb-1">Booking Tidak Aktif</h4>
+                            <p class="text-sm text-gray-500 px-6">
+                                Status pesanan ini adalah <span class="font-bold">{{ selectedOrder.status }}</span>. Kode QR tidak dapat digunakan.
+                            </p>
                         </div>
 
                         <!-- Info grid -->

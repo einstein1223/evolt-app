@@ -23,11 +23,14 @@ const formattedTime = computed(() =>
 const userBatteryLevel = ref(65);
 
 // ─── MAP STATE ────────────────────────────────────────────────────────────────
-let map             = null;
-let markersLayer    = null;
-let routeLayer      = null;
-let userMarker      = null;
-let locationWatchId = null;
+let map          = null;
+let markersLayer = null;
+let routeLayer   = null;
+let userMarker   = null;
+
+// FIX #4: locationWatchId sebelumnya `let` biasa -> tidak reactive, sehingga badge
+// "GPS Aktif" di template berpotensi tidak ter-update. Sekarang jadi ref.
+const locationWatchId = ref(null);
 
 const userLocation = ref(null);
 const isLocating   = ref(false);
@@ -44,22 +47,7 @@ const selectedStationId     = ref(null);
 const bookingError          = ref('');
 const isProcessingPayment   = ref(false);
 
-// ─── QRIS PAYMENT MODAL STATE ────────────────────────────────────────────────
-const showQrisModal      = ref(false);
-const qrisData           = ref({
-    booking_code: '',
-    qris_url:     '',      // URL gambar QR atau checkout URL
-    payment_url:  '',      // Fallback checkout URL
-    amount:       0,
-    channel_code: '',
-});
-const qrisPaymentStatus  = ref('pending');   // pending | paid | expired | failed
-const qrisPollingTimer   = ref(null);
-const qrisCountdown      = ref(900);         // 15 menit countdown
-let   qrisCountdownTimer = null;
-const isCheckingStatus   = ref(false);
-
-// ─── RECEIPT MODAL (fallback jika tidak ada QR) ───────────────────────────────
+// ─── RECEIPT MODAL (fallback jika tidak ada payment link) ────────────────────
 const showReceiptModal = ref(false);
 const transactionCode  = ref('');
 const bookedStation    = ref(null);
@@ -91,6 +79,20 @@ const isSlotBooked = (slot) => {
     return (bookedSlots.value[selectedStation.value.id] || []).includes(slot);
 };
 
+// FIX #8: slot dianggap "lewat" kalau kurang dari 15 menit lagi (bukan cuma
+// dibandingkan per-jam bulat), supaya user tidak booking slot yang mustahil dikejar.
+const SLOT_BUFFER_MS = 15 * 60 * 1000;
+
+const isSlotPast = (slot) => {
+    const now = new Date();
+    const [slotHour] = slot.split(':').map(Number);
+    const slotDate = new Date(now);
+    slotDate.setHours(slotHour, 0, 0, 0);
+    return slotDate.getTime() - now.getTime() < SLOT_BUFFER_MS;
+};
+
+const isSlotDisabled = (slot) => isSlotBooked(slot) || isSlotPast(slot);
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const safeParseArray = (data) => {
     if (!data) return [];
@@ -115,6 +117,11 @@ const getStationPower = (s) => {
 
 const getServiceFee = (s) => Number(s.service_fee) || Number(s.serviceFee) || 0;
 
+// FIX #1: harga dasar kini dibaca dari data stasiun (jika backend mengirimkannya),
+// dengan fallback 2000 supaya tidak error kalau field belum ada. Tidak perlu
+// perubahan apa pun di backend/controller.
+const getBasePrice = (s) => Number(s.price) || Number(s.base_price) || 2000;
+
 const getEstimatedTimeToFull = (powerStr) => {
     const m = (powerStr || '50').match(/([0-9]+)/);
     const kw = m ? Number(m[1]) : 50;
@@ -128,11 +135,11 @@ const getEstimatedTimeToFull = (powerStr) => {
 const formatRupiah = (val) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
 
-const formatCountdown = (secs) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-};
+// FIX #6: escape HTML sebelum disisipkan ke popup Leaflet (innerHTML) untuk
+// mencegah XSS lewat nama stasiun yang mungkin berasal dari data admin/DB.
+const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[m]));
 
 // ─── STATIONS ─────────────────────────────────────────────────────────────────
 const formState = ref({ domicile: props.filters.domicile || '' });
@@ -151,6 +158,21 @@ const calcDistance = (la1, lo1, la2, lo2) => {
     return parseFloat((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1));
 };
 
+// FIX #5: satu sumber kebenaran untuk status/badge stasiun (isBookable + badge
+// label/warna dihitung sekali di sini), supaya badge dan tombol booking tidak
+// pernah saling kontradiksi lagi.
+const getStationBadge = (s, isBookable) => {
+    if (!isBookable) {
+        return { label: '🔴 Tutup', classes: 'bg-gray-100 text-gray-500' };
+    }
+    if (s.recommendation_status) {
+        return s.is_recommended
+            ? { label: '🟢 Sepi', classes: 'bg-green-100 text-green-700' }
+            : { label: '🟠 Ramai', classes: 'bg-orange-100 text-orange-700' };
+    }
+    return null;
+};
+
 const nearestStations = computed(() => {
     let center = { lat: 1.1301, lng: 104.0529 };
     if (userLocation.value) center = userLocation.value;
@@ -163,8 +185,11 @@ const nearestStations = computed(() => {
             const dist = s.lat && s.lng
                 ? calcDistance(center.lat, center.lng, parseFloat(s.lat), parseFloat(s.lng))
                 : 999.9;
-            const isBookable = s.is_open == 1 || s.is_open === true || s.status === 'Tersedia';
-            const power = getStationPower(s);
+            const isBookable  = s.is_open == 1 || s.is_open === true || s.status === 'Tersedia';
+            const power       = getStationPower(s);
+            const basePrice   = getBasePrice(s);
+            const serviceFee  = getServiceFee(s);
+            const badge       = getStationBadge(s, isBookable);
             return {
                 ...s,
                 realDistance: dist,
@@ -172,8 +197,12 @@ const nearestStations = computed(() => {
                 isBookable,
                 safeType: getStationType(s),
                 safePower: power,
-                safeServiceFee: getServiceFee(s),
+                safeServiceFee: serviceFee,
+                basePrice,
+                displayPrice: formatRupiah(basePrice),
                 estimatedTimeToFull: getEstimatedTimeToFull(power),
+                badgeLabel: badge?.label ?? null,
+                badgeClasses: badge?.classes ?? '',
             };
         })
         .sort((a, b) => a.realDistance - b.realDistance);
@@ -187,6 +216,12 @@ const selectedStation = computed(() =>
 const selectedPort     = ref('');
 const selectedDuration = ref('30');
 const activeDropdown   = ref(null);
+
+// FIX #9: refs & index aktif untuk navigasi keyboard dropdown Port/Durasi
+const portListRef          = ref(null);
+const durationListRef      = ref(null);
+const portActiveIndex      = ref(-1);
+const durationActiveIndex  = ref(-1);
 
 const availablePorts = computed(() => {
     if (!selectedStation.value) return [];
@@ -213,19 +248,59 @@ const durationOptions = computed(() => {
     ];
 });
 
+// FIX #1: rincian harga sekarang memakai harga & biaya layanan dari stasiun
+// yang dipilih (bukan angka hardcode 2000 untuk semua stasiun).
 const priceBreakdown = computed(() => {
     if (!selectedStation.value) return { price: 0, service: 0, ppn: 0, total: 0 };
-    const price   = 2000;
-    const service = 0;
+    const price   = selectedStation.value.basePrice;
+    const service = selectedStation.value.safeServiceFee;
     const ppn     = Math.round((price + service) * 0.11);
     return { price, service, ppn, total: price + service + ppn };
 });
 
-const toggleDropdown = (name) => { activeDropdown.value = activeDropdown.value === name ? null : name; };
-const selectOption   = (f, v) => {
+const toggleDropdown = (name) => {
+    activeDropdown.value = activeDropdown.value === name ? null : name;
+    if (activeDropdown.value === 'port') {
+        portActiveIndex.value = availablePorts.value.findIndex(p => p.value === selectedPort.value);
+        nextTick(() => focusDropdownItem(portListRef, portActiveIndex.value));
+    } else if (activeDropdown.value === 'duration') {
+        durationActiveIndex.value = durationOptions.value.findIndex(d => d.value === selectedDuration.value);
+        nextTick(() => focusDropdownItem(durationListRef, durationActiveIndex.value));
+    }
+};
+
+const focusDropdownItem = (listRef, index) => {
+    const el = listRef.value?.children?.[Math.max(index, 0)];
+    if (el && el.focus) el.focus();
+};
+
+const selectOption = (f, v) => {
     if (f === 'port') selectedPort.value = v;
     else if (f === 'duration') selectedDuration.value = v;
     activeDropdown.value = null;
+};
+
+// FIX #9: navigasi keyboard (ArrowUp/Down/Enter/Escape) untuk dropdown Port & Durasi
+const handleBookingDropdownKeydown = (e, field, options, valueKey = 'value') => {
+    const isPort = field === 'port';
+    const activeIndex = isPort ? portActiveIndex : durationActiveIndex;
+    const listRef = isPort ? portListRef : durationListRef;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex.value = Math.min(activeIndex.value + 1, options.length - 1);
+        focusDropdownItem(listRef, activeIndex.value);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex.value = Math.max(activeIndex.value - 1, 0);
+        focusDropdownItem(listRef, activeIndex.value);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const opt = options[activeIndex.value];
+        if (opt) selectOption(field, opt[valueKey]);
+    } else if (e.key === 'Escape') {
+        activeDropdown.value = null;
+    }
 };
 
 const reserveStation = async (id) => {
@@ -262,7 +337,10 @@ const proceedToPayment = () => {
     confirmPayment();
 };
 
-// ─── CONFIRM PAYMENT → POST ke backend → tampilkan QRIS ──────────────────────
+// ─── CONFIRM PAYMENT → POST ke backend ────────────────────────────────────────
+// FIX #2 & #3: dirapikan jadi satu alur yang jelas -> redirect ke payment_url
+// kalau ada, atau tampilkan struk sebagai fallback. Endpoint, payload, dan
+// nama field response (payment_url, booking_code) TIDAK diubah sama sekali.
 const confirmPayment = async () => {
     if (!selectedStation.value) return;
     isProcessingPayment.value = true;
@@ -286,18 +364,13 @@ const confirmPayment = async () => {
 
         const data = res.data;
 
-        // ── Jika ada QRIS url → tampilkan QRIS Modal ──────────────────────
-       if (res.data.payment_url) {
-        // Hapus: showQrisModal.value = true;
-        // Langsung redirect ke halaman resmi Paymenku
-        window.location.href = res.data.payment_url;
-    } else {
-        // Fallback jika tidak ada link
-        transactionCode.value = res.data.booking_code;
-        showReceiptModal.value = true;
-    }
+        if (data.payment_url) {
+            // Redirect ke halaman pembayaran resmi (mis. Paymentku)
+            window.location.href = data.payment_url;
+            return;
+        }
 
-        // ── Fallback: tidak ada payment link → tampilkan struk biasa ──────
+        // Fallback: tidak ada link pembayaran -> tampilkan struk biasa
         transactionCode.value  = data.booking_code ?? ('EV-' + Math.floor(Date.now() / 1000));
         bookedStation.value    = selectedStation.value;
         showReceiptModal.value = true;
@@ -316,73 +389,6 @@ const confirmPayment = async () => {
             bookingError.value = err.response?.data?.message ?? 'Gagal memproses booking. Coba lagi.';
         }
     }
-};
-
-// ─── QRIS POLLING ─────────────────────────────────────────────────────────────
-const startQrisPolling = (bookingCode) => {
-    stopQrisPolling();
-    qrisPollingTimer.value = setInterval(async () => {
-        if (!showQrisModal.value) { stopQrisPolling(); return; }
-        await checkQrisStatus(bookingCode);
-    }, 5000); // Cek setiap 5 detik
-};
-
-const stopQrisPolling = () => {
-    if (qrisPollingTimer.value) {
-        clearInterval(qrisPollingTimer.value);
-        qrisPollingTimer.value = null;
-    }
-};
-
-const startQrisCountdown = () => {
-    if (qrisCountdownTimer) clearInterval(qrisCountdownTimer);
-    qrisCountdownTimer = setInterval(() => {
-        if (qrisCountdown.value <= 0) {
-            clearInterval(qrisCountdownTimer);
-            qrisPaymentStatus.value = 'expired';
-            stopQrisPolling();
-            return;
-        }
-        qrisCountdown.value--;
-    }, 1000);
-};
-
-const checkQrisStatus = async (bookingCode) => {
-    if (isCheckingStatus.value) return;
-    isCheckingStatus.value = true;
-    try {
-        const res    = await axios.get(route('booking.check-status', bookingCode));
-        const status = res.data.status ?? '';
-
-        if (status === 'Lunas') {
-            qrisPaymentStatus.value = 'paid';
-            stopQrisPolling();
-            if (qrisCountdownTimer) clearInterval(qrisCountdownTimer);
-        } else if (['Kadaluarsa', 'Gagal Bayar', 'Dibatalkan'].includes(status)) {
-            qrisPaymentStatus.value = 'failed';
-            stopQrisPolling();
-            if (qrisCountdownTimer) clearInterval(qrisCountdownTimer);
-        }
-    } catch (e) {
-        console.warn('Check status error:', e);
-    }
-    isCheckingStatus.value = false;
-};
-
-const closeQrisModal = () => {
-    stopQrisPolling();
-    if (qrisCountdownTimer) clearInterval(qrisCountdownTimer);
-    showQrisModal.value = false;
-
-    // Kalau sudah bayar, redirect ke profil
-    if (qrisPaymentStatus.value === 'paid') {
-        router.visit(route('profile'));
-    }
-};
-
-const openPaymentLink = () => {
-    const url = qrisData.value.payment_url || qrisData.value.qris_url;
-    if (url) window.open(url, '_blank');
 };
 
 // ─── RECEIPT ──────────────────────────────────────────────────────────────────
@@ -427,7 +433,7 @@ const drawRouteOnSuccess = async (station) => {
         });
         window.L.marker([parseFloat(station.lat), parseFloat(station.lng)], { icon: destIcon, zIndexOffset: 900 })
             .addTo(map)
-            .bindPopup(`<div style="text-align:center;padding:6px 4px;"><b style="font-size:14px;">${station.name}</b><br><span style="color:#00C853;font-weight:700;font-size:13px;">✅ Sudah Dipesan</span></div>`, { maxWidth: 200 })
+            .bindPopup(`<div style="text-align:center;padding:6px 4px;"><b style="font-size:14px;">${escapeHtml(station.name)}</b><br><span style="color:#00C853;font-weight:700;font-size:13px;">✅ Sudah Dipesan</span></div>`, { maxWidth: 200 })
             .openPopup();
 
         map.fitBounds(routeLayer.getBounds(), { padding: [100, 60], maxZoom: 15 });
@@ -536,7 +542,7 @@ const showDirection = async (station) => {
             iconSize: [36, 36], iconAnchor: [18, 18],
         });
         window.L.marker([parseFloat(station.lat), parseFloat(station.lng)], { icon: destIcon })
-            .addTo(map).bindPopup(`<b>${station.name}</b>`).openPopup();
+            .addTo(map).bindPopup(`<b>${escapeHtml(station.name)}</b>`).openPopup();
 
         map.fitBounds(routeLayer.getBounds(), { padding: [80, 80] });
 
@@ -595,6 +601,7 @@ const renderMarkers = (L) => {
     markersLayer.clearLayers();
     nearestStations.value.forEach(s => {
         if (!s.lat || !s.lng) return;
+        const safeName = escapeHtml(s.name);
         const icon = L.divIcon({
             className: 'bg-transparent',
             html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:${s.isBookable ? '#00C853' : '#9CA3AF'};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.25);font-size:14px;cursor:pointer;">⚡</div>`,
@@ -603,9 +610,9 @@ const renderMarkers = (L) => {
         const marker = L.marker([s.lat, s.lng], { icon }).addTo(markersLayer);
         marker.bindPopup(`
             <div style="text-align:center;padding:8px 4px;min-width:180px;">
-                <b style="font-size:14px;display:block;margin-bottom:4px;">${s.name}</b>
+                <b style="font-size:14px;display:block;margin-bottom:4px;">${safeName}</b>
                 <span style="color:#666;font-size:12px;">📍 ${s.distance}</span>
-                <span style="color:#00C853;font-size:12px;font-weight:600;display:block;margin:2px 0;">⚡ ${s.safeType} · ${s.safePower}</span>
+                <span style="color:#00C853;font-size:12px;font-weight:600;display:block;margin:2px 0;">⚡ ${escapeHtml(s.safeType)} · ${escapeHtml(s.safePower)}</span>
                 <div style="display:flex;gap:6px;margin-top:10px;">
                     <button onclick="window.dispatchEvent(new CustomEvent('ev-direction',{detail:${s.id}}))"
                         style="flex:1;background:#3b82f6;color:#fff;padding:7px 0;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;">
@@ -621,10 +628,19 @@ const renderMarkers = (L) => {
     });
 };
 
+// FIX #4: dijadikan toggle yang benar + tidak pernah menumpuk watcher GPS.
 const startRealtimeTracking = () => {
     if (!navigator.geolocation) { alert('Browser tidak support GPS.'); return; }
+
+    // Kalau sudah aktif, klik lagi berarti matikan tracking
+    if (locationWatchId.value !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.value);
+        locationWatchId.value = null;
+        return;
+    }
+
     isLocating.value = true;
-    locationWatchId  = navigator.geolocation.watchPosition(
+    locationWatchId.value = navigator.geolocation.watchPosition(
         (pos) => {
             userLocation.value = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             isLocating.value   = false;
@@ -671,11 +687,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
     clearInterval(timerInterval);
-    stopQrisPolling();
-    if (qrisCountdownTimer) clearInterval(qrisCountdownTimer);
     window.removeEventListener('ev-book',      handleMapBook);
     window.removeEventListener('ev-direction', handleMapDirection);
-    if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
+    if (locationWatchId.value !== null) navigator.geolocation.clearWatch(locationWatchId.value);
 });
 </script>
 
@@ -698,7 +712,10 @@ onBeforeUnmount(() => {
                     <div id="map" class="absolute inset-0 z-10 w-full h-full"></div>
 
                     <button @click="startRealtimeTracking"
-                        class="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-200 text-gray-600 hover:text-blue-600 transition flex items-center justify-center w-12 h-12">
+                        :aria-pressed="locationWatchId !== null"
+                        aria-label="Aktifkan atau matikan pelacakan lokasi realtime"
+                        class="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-200 transition flex items-center justify-center w-12 h-12"
+                        :class="locationWatchId !== null ? 'text-blue-600 ring-2 ring-blue-200' : 'text-gray-600 hover:text-blue-600'">
                         <i v-if="!isLocating" class="fas fa-location-arrow text-xl"></i>
                         <i v-else class="fas fa-spinner fa-spin text-xl text-blue-500"></i>
                     </button>
@@ -822,21 +839,19 @@ onBeforeUnmount(() => {
                                         <span class="font-bold text-[#00C853]">{{ station.distance }}</span>
                                     </div>
                                 </div>
-                                <span v-if="station.recommendation_status && station.is_open"
+                                <!-- FIX #5: badge tunggal, sinkron dengan isBookable, tidak ada lagi kemungkinan kontradiksi -->
+                                <span v-if="station.badgeLabel"
                                     class="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2"
-                                    :class="station.is_recommended ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'">
-                                    {{ station.is_recommended ? '🟢 Sepi' : '🟠 Ramai' }}
-                                </span>
-                                <span v-else-if="!station.is_open"
-                                    class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-500 flex-shrink-0 ml-2">
-                                    🔴 Tutup
+                                    :class="station.badgeClasses">
+                                    {{ station.badgeLabel }}
                                 </span>
                             </div>
 
                             <div class="space-y-3 mb-4 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100 mt-2">
                                 <div class="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
                                     <span class="text-gray-600">Harga</span>
-                                    <span class="font-semibold text-gray-800">Rp 2.000</span>
+                                    <!-- FIX #1: harga per stasiun, bukan hardcode -->
+                                    <span class="font-semibold text-gray-800">{{ station.displayPrice }}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-600"><i class="fas fa-bolt w-5 mr-2 text-yellow-500"></i>Tipe</span>
@@ -907,16 +922,30 @@ onBeforeUnmount(() => {
                         <div class="relative">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Port Charging</label>
                             <div @click="toggleDropdown('port')"
-                                class="w-full p-3.5 border-2 rounded-xl flex justify-between bg-white cursor-pointer transition"
+                                @keydown.enter.prevent="toggleDropdown('port')"
+                                @keydown.esc="activeDropdown = null"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="activeDropdown === 'port'"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih port charging"
+                                class="w-full p-3.5 border-2 rounded-xl flex justify-between bg-white cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-[#00C853]/40"
                                 :class="activeDropdown === 'port' ? 'border-[#00C853]' : 'border-gray-200'">
                                 <span class="font-semibold text-gray-800">{{ selectedPort || 'Pilih Port' }}</span>
                                 <i class="fas fa-chevron-down text-gray-400 transition-transform" :class="activeDropdown === 'port' ? 'rotate-180' : ''"></i>
                             </div>
                             <div v-if="activeDropdown === 'port'"
+                                ref="portListRef"
+                                role="listbox"
+                                aria-label="Daftar port charging"
                                 class="absolute w-full mt-1 bg-white border-2 border-[#00C853] rounded-xl shadow-lg z-20 overflow-hidden">
                                 <div v-for="port in availablePorts" :key="port.id"
+                                    role="option"
+                                    :aria-selected="selectedPort === port.value"
+                                    tabindex="0"
                                     @click="selectOption('port', port.value)"
-                                    class="p-3.5 hover:bg-green-50 cursor-pointer font-medium text-gray-800 border-b border-gray-100 last:border-0">
+                                    @keydown="handleBookingDropdownKeydown($event, 'port', availablePorts)"
+                                    class="p-3.5 hover:bg-green-50 focus:bg-green-50 focus:outline-none cursor-pointer font-medium text-gray-800 border-b border-gray-100 last:border-0">
                                     {{ port.label }}
                                 </div>
                             </div>
@@ -926,7 +955,14 @@ onBeforeUnmount(() => {
                         <div class="relative">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Target Energi / Durasi</label>
                             <div @click="toggleDropdown('duration')"
-                                class="w-full p-3.5 border-2 rounded-xl flex justify-between bg-white cursor-pointer transition"
+                                @keydown.enter.prevent="toggleDropdown('duration')"
+                                @keydown.esc="activeDropdown = null"
+                                tabindex="0"
+                                role="combobox"
+                                :aria-expanded="activeDropdown === 'duration'"
+                                aria-haspopup="listbox"
+                                aria-label="Pilih target energi atau durasi"
+                                class="w-full p-3.5 border-2 rounded-xl flex justify-between bg-white cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-[#00C853]/40"
                                 :class="activeDropdown === 'duration' ? 'border-[#00C853]' : 'border-gray-200'">
                                 <span class="font-semibold text-gray-800">
                                     {{ durationOptions.find(d => d.value === selectedDuration)?.label || 'Pilih Paket' }}
@@ -934,10 +970,17 @@ onBeforeUnmount(() => {
                                 <i class="fas fa-chevron-down text-gray-400 transition-transform" :class="activeDropdown === 'duration' ? 'rotate-180' : ''"></i>
                             </div>
                             <div v-if="activeDropdown === 'duration'"
+                                ref="durationListRef"
+                                role="listbox"
+                                aria-label="Daftar target energi/durasi"
                                 class="absolute w-full mt-1 bg-white border-2 border-[#00C853] rounded-xl shadow-lg z-20 overflow-hidden">
                                 <div v-for="dur in durationOptions" :key="dur.value"
+                                    role="option"
+                                    :aria-selected="selectedDuration === dur.value"
+                                    tabindex="0"
                                     @click="selectOption('duration', dur.value)"
-                                    class="p-3.5 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-0">
+                                    @keydown="handleBookingDropdownKeydown($event, 'duration', durationOptions)"
+                                    class="p-3.5 hover:bg-green-50 focus:bg-green-50 focus:outline-none cursor-pointer border-b border-gray-100 last:border-0">
                                     <span class="font-bold text-gray-800 block">{{ dur.label }}</span>
                                 </div>
                             </div>
@@ -957,20 +1000,28 @@ onBeforeUnmount(() => {
                             <div v-else class="grid grid-cols-4 sm:grid-cols-5 gap-2">
                                 <button v-for="slot in timeSlots" :key="slot"
                                     type="button"
-                                    :disabled="isSlotBooked(slot)"
-                                    @click="!isSlotBooked(slot) && (selectedTimeSlot = slot)"
+                                    :disabled="isSlotDisabled(slot)"
+                                    @click="!isSlotDisabled(slot) && (selectedTimeSlot = slot)"
                                     :class="[
                                         'py-2.5 rounded-xl text-sm font-bold border-2 transition-all duration-150 relative',
-                                        isSlotBooked(slot)
-                                            ? 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed line-through'
+                                        isSlotDisabled(slot)
+                                            ? 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed ' + (isSlotBooked(slot) ? 'line-through' : 'opacity-60')
                                             : selectedTimeSlot === slot
                                                 ? 'bg-[#00C853] text-white border-[#00C853] shadow-md scale-105'
                                                 : 'bg-white text-gray-700 border-gray-200 hover:border-[#00C853] hover:text-[#00C853]'
                                     ]">
                                     {{ slot }}
+
+                                    <!-- Badge jika Penuh -->
                                     <span v-if="isSlotBooked(slot)"
-                                        class="absolute -top-1.5 -right-1.5 text-[9px] bg-red-400 text-white px-1 py-0.5 rounded-full font-black leading-none">
+                                        class="absolute -top-1.5 -right-1.5 text-[9px] bg-red-400 text-white px-1 py-0.5 rounded-full font-black leading-none shadow-sm">
                                         PENUH
+                                    </span>
+
+                                    <!-- Badge jika Waktu Sudah Lewat / Terlalu Mepet -->
+                                    <span v-else-if="isSlotPast(slot)"
+                                        class="absolute -top-1.5 -right-1.5 text-[9px] bg-gray-400 text-white px-1 py-0.5 rounded-full font-black leading-none shadow-sm">
+                                        LEWAT
                                     </span>
                                 </button>
                             </div>
@@ -1011,14 +1062,14 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <!-- Info QRIS -->
+                        <!-- Info Pembayaran -->
                         <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
                             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <i class="fas fa-qrcode text-white text-xs"></i>
                             </div>
                             <div>
                                 <p class="text-sm font-semibold text-blue-800">Pembayaran via QRIS / Paymentku</p>
-                                <p class="text-xs text-blue-600 mt-0.5">Setelah konfirmasi, kode QRIS akan muncul untuk di-scan. Batas waktu pembayaran 15 menit.</p>
+                                <p class="text-xs text-blue-600 mt-0.5">Setelah konfirmasi, kamu akan diarahkan ke halaman pembayaran resmi.</p>
                             </div>
                         </div>
 
@@ -1053,115 +1104,6 @@ onBeforeUnmount(() => {
         </Transition>
 
         <!-- ═══════════════════════════════════════════
-             MODAL QRIS PAYMENT
-        ═══════════════════════════════════════════ -->
-        <Transition name="fade">
-            <div v-if="showQrisModal"
-                class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm flex items-center justify-center z-[7000] px-4">
-
-                <div class="bg-white w-full max-h-sm rounded-3xl shadow-2xl overflow-hidden">
-
-                    <!-- Header -->
-                    <div class="bg-gradient-to-br from-[#00C853] to-emerald-600 px-6 pt-6 pb-5 text-white text-center">
-                        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-qrcode text-3xl"></i>
-                        </div>
-                        <h3 class="text-lg font-black">Bayar dengan QRIS</h3>
-                        <p class="text-green-100 text-xs mt-1">Scan QR code di bawah menggunakan aplikasi dompet digital atau m-banking</p>
-                    </div>
-
-                    <!-- Body -->
-                    <div class="px-6 py-5">
-
-                        <!-- Status: PAID ✅ -->
-                        <div v-if="qrisPaymentStatus === 'paid'" class="text-center py-6">
-                            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-check-circle text-4xl text-green-500"></i>
-                            </div>
-                            <h4 class="text-xl font-black text-gray-900 mb-1">Pembayaran Berhasil!</h4>
-                            <p class="text-gray-500 text-sm mb-1">Booking <span class="font-mono font-bold text-gray-800">{{ qrisData.booking_code }}</span></p>
-                            <p class="text-gray-400 text-xs">Kamu akan diarahkan ke profil...</p>
-                        </div>
-
-                        <!-- Status: EXPIRED / FAILED ❌ -->
-                        <div v-else-if="['expired', 'failed'].includes(qrisPaymentStatus)" class="text-center py-6">
-                            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-times-circle text-4xl text-red-400"></i>
-                            </div>
-                            <h4 class="text-xl font-black text-gray-900 mb-1">
-                                {{ qrisPaymentStatus === 'expired' ? 'Waktu Habis' : 'Pembayaran Gagal' }}
-                            </h4>
-                            <p class="text-gray-500 text-sm">Silakan buat booking baru dan coba lagi.</p>
-                        </div>
-
-                        <!-- Status: PENDING — tampilkan QR -->
-                        <div v-else>
-                            <!-- QR Image atau fallback ke checkout link -->
-                            <div class="bg-gray-50 rounded-2xl p-4 flex flex-col items-center border border-gray-100 mb-4">
-                                <!-- Jika qris_url adalah gambar (ends with .png/.jpg atau mengandung /qr/) -->
-                                <img
-                                    v-if="qrisData.qris_url && (qrisData.qris_url.match(/\.(png|jpg|jpeg|svg|gif)$/i) || qrisData.qris_url.includes('qr'))"
-                                    :src="qrisData.qris_url"
-                                    alt="QRIS Code"
-                                    class="w-48 h-48 object-contain"
-                                />
-                                <!-- Jika berupa URL checkout, tampilkan QR dari google api menggunakan booking_code -->
-                                <img
-                                    v-else
-                                    :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrisData.payment_url || qrisData.qris_url || qrisData.booking_code)}`"
-                                    alt="QRIS Code"
-                                    class="w-48 h-48 object-contain"
-                                />
-                                <p class="text-xs text-gray-400 mt-2 font-mono">{{ qrisData.booking_code }}</p>
-                            </div>
-
-                            <!-- Total & countdown -->
-                            <div class="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-3 mb-4 border border-gray-100">
-                                <div>
-                                    <p class="text-xs text-gray-400 font-medium">Total Pembayaran</p>
-                                    <p class="text-lg font-black text-gray-900">{{ formatRupiah(qrisData.amount) }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-xs text-gray-400 font-medium">Sisa Waktu</p>
-                                    <p class="text-lg font-black font-mono"
-                                        :class="qrisCountdown < 60 ? 'text-red-500 animate-pulse' : 'text-gray-900'">
-                                        {{ formatCountdown(qrisCountdown) }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Polling indicator -->
-                            <div class="flex items-center justify-center gap-2 text-xs text-gray-400 mb-4">
-                                <span class="w-2 h-2 bg-[#00C853] rounded-full animate-pulse"></span>
-                                <span>{{ isCheckingStatus ? 'Memeriksa pembayaran...' : 'Menunggu konfirmasi pembayaran' }}</span>
-                            </div>
-
-                            <!-- Tombol buka checkout -->
-                            <button v-if="qrisData.payment_url || qrisData.qris_url"
-                                @click="openPaymentLink"
-                                class="w-full py-3 bg-blue-50 border-2 border-blue-200 text-blue-700 rounded-xl font-bold text-sm hover:bg-blue-100 transition flex items-center justify-center gap-2 mb-3">
-                                <i class="fas fa-external-link-alt text-xs"></i>
-                                Buka Halaman Pembayaran
-                            </button>
-                        </div>
-
-                        <!-- Tombol tutup -->
-                        <button @click="closeQrisModal"
-                            :class="[
-                                'w-full py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2',
-                                qrisPaymentStatus === 'paid'
-                                    ? 'bg-[#00C853] text-white hover:bg-[#00A142]'
-                                    : 'border-2 border-gray-200 text-gray-600 hover:bg-gray-50'
-                            ]">
-                            <i :class="qrisPaymentStatus === 'paid' ? 'fas fa-user-circle' : 'fas fa-times'"></i>
-                            {{ qrisPaymentStatus === 'paid' ? 'Lihat Booking di Profil' : 'Tutup' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Transition>
-
-        <!-- ═══════════════════════════════════════════
              MODAL STRUK SUKSES (fallback tanpa payment link)
         ═══════════════════════════════════════════ -->
         <Transition name="receipt-pop">
@@ -1169,7 +1111,8 @@ onBeforeUnmount(() => {
                 class="fixed inset-0 z-[7000] flex flex-col"
                 style="pointer-events:none;">
 
-                <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]" style="pointer-events:auto;"></div>
+                <!-- FIX #7: backdrop kini bisa diklik untuk menutup modal -->
+                <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]" style="pointer-events:auto;" @click="closeReceiptModal"></div>
 
                 <div class="relative z-10 flex justify-center pt-5" style="pointer-events:none;">
                     <div class="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border border-green-200">
@@ -1186,9 +1129,16 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <div class="relative z-10 mt-auto pb-6 px-4 flex justify-center" style="pointer-events:auto;">
-                    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+                <div class="relative z-10 mt-auto pb-6 px-4 flex justify-center" style="pointer-events:auto;" @click.stop>
+                    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative"
                         style="box-shadow:0 -4px 40px rgba(0,0,0,0.18);">
+
+                        <button @click="closeReceiptModal"
+                            type="button"
+                            aria-label="Tutup"
+                            class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
 
                         <div class="bg-[#00C853] px-6 pt-5 pb-4">
                             <div class="flex items-center gap-3">
@@ -1266,9 +1216,6 @@ onBeforeUnmount(() => {
 .slide-right-enter-from,   .slide-right-leave-to     { transform: translateX(-100%); opacity: 0; }
 
 .direction-panel { border-radius: 0 1.5rem 1.5rem 0; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity .25s ease; }
-.fade-enter-from, .fade-leave-to       { opacity: 0; }
 
 .receipt-pop-enter-active { transition: opacity .25s ease; }
 .receipt-pop-leave-active  { transition: opacity .2s ease; }

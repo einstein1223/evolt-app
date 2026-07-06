@@ -8,7 +8,7 @@
     <main class="login-container">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-black text-slate-900 tracking-tight">
-          <span class="text-[#00C853]">E</span>-VOLT
+          <span class="text-[#65a30d]">E</span>-VOLT
         </h1>
         <p class="text-slate-500 text-sm mt-2">Welcome back to the Future of Energy</p>
       </div>

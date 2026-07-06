@@ -6,7 +6,7 @@
         
         <!-- Logo & Description -->
         <div>
-          <a href="/" class="text-2xl font-extrabold text-green-400 mb-4 block">E-<span class="text-white">Volt</span></a>
+          <a href="/" class="text-2xl font-extrabold text-lime-600 mb-4 block">E-<span class="text-white">Volt</span></a>
           <p class="text-gray-400 text-sm leading-relaxed">
             Platform koneksi cerdas untuk pengguna kendaraan listrik dan stasiun pengisian daya.
           </p>
