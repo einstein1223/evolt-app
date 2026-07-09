@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OtpController; // <--- PENTING: Import Controller ini
-
+use App\Http\Controllers\BookingController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -19,3 +19,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // ROUTE OTP (Tambahkan ini)
 // ==========================================
 Route::post('/otp/send', [OtpController::class, 'send']);
+
+
+Route::post('/paymenku/webhook', [BookingController::class, 'handleWebhook']);

@@ -30,7 +30,7 @@ onUnmounted(() => {
     isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md py-2' : 'bg-transparent py-4'
   ]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center transition-all duration-300">
-      <Link href="/dashboard" class="text-2xl font-semibold text-[#00C853]">
+      <Link href="/dashboard" class="text-2xl font-semibold text-[#65a30d]">
         E-<span class="text-gray-900 font-bold">VOLT</span>
       </Link>
 
