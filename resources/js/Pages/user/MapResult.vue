@@ -708,7 +708,7 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- MAP -->
-                <div class="relative w-full mb-8 rounded-3xl shadow-xl overflow-hidden border border-gray-200 h-72 md:h-[400px] bg-gray-100">
+                <div class="relative w-full mb-8 rounded-3xl shadow-xl overflow-hidden border border-gray-200 h-[520px] md:h-[500px] bg-gray-100">
                     <div id="map" class="absolute inset-0 z-10 w-full h-full"></div>
 
                     <button @click="startRealtimeTracking"
@@ -726,10 +726,12 @@ onBeforeUnmount(() => {
                     </div>
 
                     <!-- DIRECTION PANEL -->
-                    <Transition name="slide-right">
-                        <div v-if="showDirectionPanel"
-                            class="absolute top-0 left-0 h-full z-[500] bg-white flex flex-col shadow-2xl direction-panel"
-                            style="width:320px;max-width:85vw;">
+                <Transition name="slide-right">
+                    <div v-if="showDirectionPanel"
+                         class="absolute z-[500] bg-white flex flex-col shadow-2xl
+                                bottom-0 left-0 right-0 w-full max-h-[42%] rounded-t-3xl
+                                sm:top-0 sm:right-auto sm:bottom-auto sm:h-full sm:max-h-full
+                                sm:w-[320px] sm:max-w-[85vw] sm:rounded-none sm:rounded-r-[1.5rem]">
 
                             <div class="bg-[#00C853] text-white px-4 py-4 flex-shrink-0">
                                 <div class="flex items-center justify-between mb-3">
@@ -1213,8 +1215,12 @@ onBeforeUnmount(() => {
 .slide-up-enter-from,  .slide-up-leave-to      { transform: translateY(100%); opacity: 0; }
 
 .slide-right-enter-active, .slide-right-leave-active { transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .35s ease; }
-.slide-right-enter-from,   .slide-right-leave-to     { transform: translateX(-100%); opacity: 0; }
-
+@media (max-width: 639px) {
+    .slide-right-enter-from,
+    .slide-right-leave-to {
+        transform: translateY(100%);
+    }
+}
 .direction-panel { border-radius: 0 1.5rem 1.5rem 0; }
 
 .receipt-pop-enter-active { transition: opacity .25s ease; }
